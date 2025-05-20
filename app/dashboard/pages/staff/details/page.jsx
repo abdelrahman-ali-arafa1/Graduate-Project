@@ -337,9 +337,9 @@ const Details = () => {
               </div>
               <div className="flex items-end gap-2">
                 <p className="text-3xl font-bold text-green-400">{instructorStats?.present ?? 0}</p>
-                <span className="text-xs text-green-400 font-semibold">Student</span>
+                <span className="text-xs text-green-400 font-semibold">actions</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Students present</p>
+              <p className="text-xs text-gray-500 mt-2">Actions Present</p>
             </motion.div>
             <motion.div 
               className="bg-[#1a1f2e] p-5 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group"
@@ -356,9 +356,9 @@ const Details = () => {
               </div>
               <div className="flex items-end gap-2">
                 <p className="text-3xl font-bold text-red-400">{instructorStats?.absent ?? 0}</p>
-                <span className="text-xs text-red-400 font-semibold">Student</span>
+                <span className="text-xs text-red-400 font-semibold">actions</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Students absent</p>
+              <p className="text-xs text-gray-500 mt-2">Actions Absent</p>
             </motion.div>
             <motion.div 
               className="bg-[#1a1f2e] p-5 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group"
@@ -617,7 +617,7 @@ const AttendancePieChart = ({ data }) => {
           {`${payload.name}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={12}>
-          {`${value} students`}
+          {`${value} actions`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={12}>
           {`(${(percent * 100).toFixed(1)}%)`}
@@ -665,7 +665,7 @@ const AttendancePieChart = ({ data }) => {
             {data.name}
           </p>
           <p className="text-white text-sm">
-            {data.value} students
+            {data.value} Actions
           </p>
           <p className="text-gray-300 text-xs mt-1">
             {`(${((data.value / totalValue) * 100).toFixed(1)}%)`}
@@ -768,7 +768,7 @@ const AttendanceBarChart = ({ present, absent }) => {
             {data.payload.name}
           </p>
           <p className="text-white text-sm">
-            {data.value} students
+            {data.value} Actions
           </p>
           <p className="text-gray-300 text-xs mt-1">
             {`(${(data.value / (present + absent) * 100).toFixed(1)}%)`}

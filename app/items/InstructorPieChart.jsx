@@ -59,7 +59,7 @@ const InstructorPieChart = ({ data }) => {
           {`${payload.name}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={12}>
-          {`${value} students`}
+          {`${value} actions`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={12}>
           {`(${(percent * 100).toFixed(1)}%)`}
@@ -107,7 +107,7 @@ const InstructorPieChart = ({ data }) => {
             {data.name}
           </p>
           <p className="text-white text-sm">
-            {data.value} students
+            {data.value} actions
           </p>
           <p className="text-gray-300 text-xs mt-1">
             {`(${((data.value / totalValue) * 100).toFixed(1)}%)`}

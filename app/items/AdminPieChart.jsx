@@ -68,7 +68,7 @@ const AdminPieChart = ({ data }) => {
           {`${payload.name}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={12}>
-          {`${value} ${t('totalStudents').toLowerCase()}`}
+          {`${value} ${t('total actions').toLowerCase()}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={12}>
           {`(${(percent * 100).toFixed(1)}%)`}
@@ -116,7 +116,7 @@ const AdminPieChart = ({ data }) => {
             {data.name}
           </p>
           <p className="text-white text-sm">
-            {data.value} {t('totalStudents').toLowerCase()}
+            {data.value} {t('total actions').toLowerCase()}
           </p>
           <p className="text-gray-300 text-xs mt-1">
             {`(${((data.value / totalValue) * 100).toFixed(1)}%)`}
