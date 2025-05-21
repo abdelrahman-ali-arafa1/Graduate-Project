@@ -16,7 +16,7 @@ export const metadata = {
   title: "FCAI Attendance System",
   description: "Manage and track student attendance efficiently",
   icons: {
-    icon: '/images/logo.png',
+    icon: '/favicon.ico',
     apple: '/images/logo.png',
     shortcut: '/images/logo.png',
   },

@@ -446,7 +446,11 @@ const Details = () => {
                 &times;
               </button>
               <h2 className="text-lg font-bold text-white mb-4">Confirm Delete Course</h2>
-              <div className="text-gray-200 mb-6">Are you sure you want to delete this course from the instructor?</div>
+              <div className="text-gray-200 mb-6">
+                Are you sure you want to delete
+                <span className="text-red-400 font-bold mx-1">"{(courses.find(c => c._id === deleteCourseId)?.courseName) || "this course"}"</span>
+                from the instructor?
+              </div>
               {deleteCourseError && <div className="text-red-400 mb-2">{deleteCourseError}</div>}
               <div className="flex justify-end gap-4">
                 <button
