@@ -27,7 +27,7 @@ import {
   Select,
 } from "@mui/material";
 import { CiSearch } from "react-icons/ci";
-import { FaFilter, FaSort, FaUserPlus, FaDownload, FaSortAmountDown, FaSortAmountUp, FaUserTimes } from "react-icons/fa";
+import { FaFilter, FaSort, FaUserPlus, FaDownload, FaSortAmountDown, FaSortAmountUp, FaUserTimes, FaCheckCircle } from "react-icons/fa";
 import { MdFilterList, MdFilterListOff } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -36,6 +36,8 @@ import {
   useGetManualAttendanceQuery,
 } from "../Redux/features/attendanceApiSlice";
 import { useTheme } from "../components/ThemeProvider";
+import { Tooltip as MuiTooltip, tooltipClasses } from '@mui/material';
+import { styled } from '@mui/material/styles';
 
 // Add this helper function at the top of the file, outside the component
 const getAttendanceStatus = (student) => {
@@ -50,7 +52,59 @@ const getAttendanceStatus = (student) => {
          "Not recorded";
 };
 
+// تولتيب مخصص حديث للحضور
+const CustomTooltip = styled(({ className, ...props }) => (
+  <MuiTooltip
+    {...props}
+    arrow
+    placement="top"
+    classes={{ popper: className }}
+    enterDelay={100}
+    leaveDelay={100}
+    TransitionProps={{ timeout: 0 }}
+  />
+))(() => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)',
+    color: '#fff',
+    fontWeight: 500,
+    fontSize: 14,
+    borderRadius: 10,
+    boxShadow: '0 4px 16px 0 #22c55e33',
+    padding: '10px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    letterSpacing: 0.2,
+  },
+}));
 
+// تولتيب مخصص حديث للغياب
+const CustomTooltipAbsent = styled(({ className, ...props }) => (
+  <MuiTooltip
+    {...props}
+    arrow
+    placement="top"
+    classes={{ popper: className }}
+    enterDelay={100}
+    leaveDelay={100}
+    TransitionProps={{ timeout: 0 }}
+  />
+))(() => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    background: 'linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)',
+    color: '#fff',
+    fontWeight: 500,
+    fontSize: 14,
+    borderRadius: 10,
+    boxShadow: '0 4px 16px 0 #ef444433',
+    padding: '10px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    letterSpacing: 0.2,
+  },
+}));
 
 export default function AttendanceTable({ allowMarkAbsent = false }) {
   const [isRendered, setIsRendered] = useState(false);
@@ -815,36 +869,52 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         </TableCell>
                           <TableCell align="center" sx={{ py: 2, borderBottom: "1px solid #2a2f3e" }}>
                             <div className="flex gap-2 justify-center">
-                              <Tooltip title={status === "present" ? "Already present" : "Mark as present"}>
+                              <CustomTooltip
+                                title={
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <FaCheckCircle style={{ color: '#fff', fontSize: 16, marginRight: 4 }} />
+                                    {status === "present" ? "Already present" : "Mark as present"}
+                                  </span>
+                                }
+                                disableInteractive={false}
+                              >
                                 <span>
-                          <Button
-                            variant="contained"
-                            size="small"
+                                  <Button
+                                    variant="contained"
+                                    size="small"
                                     onClick={() => handleAddUserAttendance(row, "present")}
                                     disabled={isLoadingAdding || status === "present"}
-                            sx={{
-                              minWidth: 0,
-                              backgroundColor: "var(--success)",
+                                    sx={{
+                                      minWidth: 0,
+                                      backgroundColor: "var(--success)",
                                       borderRadius: "6px",
                                       transition: "all 0.2s ease",
-                                      "&:hover": { 
+                                      "&:hover": {
                                         backgroundColor: "var(--success)",
                                         transform: "translateY(-2px)",
                                         boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
                                       },
-                              "&.Mui-disabled": { 
-                                        backgroundColor: "rgba(255, 255, 255, 0.05)", 
-                                        color: "rgba(255, 255, 255, 0.2)" 
-                              }
-                            }}
-                          >
-                            <FaUserPlus />
-                          </Button>
+                                      "&.Mui-disabled": {
+                                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                        color: "rgba(255, 255, 255, 0.2)"
+                                      }
+                                    }}
+                                  >
+                                    <FaUserPlus />
+                                  </Button>
                                 </span>
-                              </Tooltip>
+                              </CustomTooltip>
                               
                               {allowMarkAbsent && (
-                                <Tooltip title={status === "absent" ? "Already marked absent" : "Mark as absent"}>
+                                <CustomTooltipAbsent
+                                  title={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <FaUserTimes style={{ color: '#fff', fontSize: 16, marginRight: 4 }} />
+                                      {status === "absent" ? "Already marked absent" : "Mark as absent"}
+                                    </span>
+                                  }
+                                  disableInteractive={false}
+                                >
                                   <span>
                                     <Button
                                       variant="contained"
@@ -856,21 +926,21 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                         backgroundColor: "var(--error)",
                                         borderRadius: "6px",
                                         transition: "all 0.2s ease",
-                                        "&:hover": { 
+                                        "&:hover": {
                                           backgroundColor: "var(--error-dark)",
                                           transform: "translateY(-2px)",
                                           boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
                                         },
-                                        "&.Mui-disabled": { 
-                                          backgroundColor: "rgba(255, 255, 255, 0.05)", 
-                                          color: "rgba(255, 255, 255, 0.2)" 
+                                        "&.Mui-disabled": {
+                                          backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                          color: "rgba(255, 255, 255, 0.2)"
                                         }
                                       }}
                                     >
                                       <FaUserTimes />
                                     </Button>
                                   </span>
-                                </Tooltip>
+                                </CustomTooltipAbsent>
                               )}
                             </div>
                         </TableCell>

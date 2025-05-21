@@ -435,6 +435,47 @@ const Details = () => {
             </button>
           </motion.div>
         )}
+        {/* Modal تأكيد حذف الكورس */}
+        {deleteCourseId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-md relative">
+              <button
+                className="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl"
+                onClick={() => setDeleteCourseId(null)}
+              >
+                &times;
+              </button>
+              <h2 className="text-lg font-bold text-white mb-4">Confirm Delete Course</h2>
+              <div className="text-gray-200 mb-6">Are you sure you want to delete this course from the instructor?</div>
+              {deleteCourseError && <div className="text-red-400 mb-2">{deleteCourseError}</div>}
+              <div className="flex justify-end gap-4">
+                <button
+                  className="px-4 py-2 bg-gray-700/50 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  onClick={() => setDeleteCourseId(null)}
+                  disabled={deleteCourseLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  onClick={handleDeleteCourse}
+                  disabled={deleteCourseLoading}
+                >
+                  {deleteCourseLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin inline-block"></span>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="mr-2" /> Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       <motion.div 
