@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaUserTie, FaEnvelope, FaBook, FaBuilding, FaEdit, FaTrash, FaArrowLeft, FaCalendarAlt, FaGraduationCap, FaChartBar, FaCheckCircle, FaTimesCircle, FaPercentage } from "react-icons/fa";
+import { FaUserTie, FaEnvelope, FaBook, FaBuilding, FaEdit, FaTrash, FaArrowLeft, FaCalendarAlt, FaGraduationCap, FaChartBar, FaCheckCircle, FaTimesCircle, FaPercentage, FaPlus } from "react-icons/fa";
 import { useLanguage } from "@/app/components/LanguageProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInstructorManagement } from "@/app/hooks/useInstructorManagement";
@@ -81,6 +81,56 @@ const Details = () => {
     }
   };
 
+  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [addCourseLoading, setAddCourseLoading] = useState(false);
+  const [addCourseError, setAddCourseError] = useState("");
+  const [addCourseSuccess, setAddCourseSuccess] = useState("");
+  const [deleteCourseId, setDeleteCourseId] = useState(null);
+  const [deleteCourseLoading, setDeleteCourseLoading] = useState(false);
+  const [deleteCourseError, setDeleteCourseError] = useState("");
+  const [selectedCourseDetails, setSelectedCourseDetails] = useState(null);
+
+  // Fetch all courses once on mount
+  useEffect(() => {
+    fetch("https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/courses")
+      .then(res => res.json())
+      .then(data => setCourses(data.data || []))
+      .catch(() => setCourses([]));
+  }, []);
+
+  // Add course to instructor
+  const handleAddCourse = async () => {
+    if (!selectedCourseId) return;
+    setAddCourseLoading(true);
+    setAddCourseError("");
+    setAddCourseSuccess("");
+    try {
+      const token = localStorage.getItem("token")?.replace(/"/g, "");
+      const res = await fetch("https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/users/addCourses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: lecturer._id, courseId: selectedCourseId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAddCourseSuccess("Course added successfully!");
+        setShowAddCourseModal(false);
+        window.location.reload();
+      } else {
+        setAddCourseError(data.message || "Failed to add course");
+      }
+    } catch (err) {
+      setAddCourseError("Network error");
+    } finally {
+      setAddCourseLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setDeleteError(null);
@@ -96,6 +146,42 @@ const Details = () => {
       console.error('Error during deletion:', error);
       setDeleteError('An unexpected error occurred. Please try again.');
     }
+  };
+
+  // حذف كورس من الإنستراكتور
+  const handleDeleteCourse = async () => {
+    if (!deleteCourseId) return;
+    setDeleteCourseLoading(true);
+    setDeleteCourseError("");
+    try {
+      const token = localStorage.getItem("token")?.replace(/"/g, "");
+      const res = await fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/users/deleteCourses/${deleteCourseId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: lecturer._id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDeleteCourseId(null);
+        window.location.reload();
+      } else {
+        setDeleteCourseError(data.message || "Failed to delete course");
+      }
+    } catch (err) {
+      setDeleteCourseError("Network error");
+    } finally {
+      setDeleteCourseLoading(false);
+    }
+  };
+
+  const isNew = (createdAt) => {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffInDays = (now - created) / (1000 * 60 * 60 * 24);
+    return diffInDays < 7; // أقل من أسبوع
   };
 
   if (isLoading) {
@@ -236,41 +322,102 @@ const Details = () => {
         className="bg-[#232738] rounded-xl p-6 shadow-md border border-[#2a2f3e] overflow-hidden relative"
         variants={itemVariants}
       >
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-          <FaBook className="mr-3 text-yellow-400" /> Assigned Courses
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-white flex items-center">
+            <FaBook className="mr-3 text-yellow-400" /> Assigned Courses
+          </h3>
+          <button
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all shadow-md"
+            onClick={() => setShowAddCourseModal(true)}
+          >
+            <FaPlus /> Add Course
+          </button>
+        </div>
+        {/* Modal */}
+        {showAddCourseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-md relative">
+              <button
+                className="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl"
+                onClick={() => setShowAddCourseModal(false)}
+              >
+                &times;
+              </button>
+              <h2 className="text-lg font-bold text-white mb-4">Assign Course to Instructor</h2>
+              <select
+                className="w-full p-2 rounded-lg bg-[#1a1f2e] text-white mb-4 border border-[#2a2f3e]"
+                value={selectedCourseId}
+                onChange={e => setSelectedCourseId(e.target.value)}
+              >
+                <option value="">Select a course</option>
+                {courses
+                  .filter(course => !lecturer.lecturerCourses.some(c => c._id === course._id))
+                  .map(course => (
+                    <option key={course._id} value={course._id}>
+                      {course.courseName} - {course.courseCode} ({course.department})
+                    </option>
+                  ))}
+              </select>
+              {addCourseError && <div className="text-red-400 mb-2">{addCourseError}</div>}
+              {addCourseSuccess && <div className="text-green-400 mb-2">{addCourseSuccess}</div>}
+              <button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-2 disabled:opacity-50"
+                onClick={handleAddCourse}
+                disabled={addCourseLoading || !selectedCourseId}
+              >
+                {addCourseLoading ? "Adding..." : "Add Course"}
+              </button>
+            </div>
+          </div>
+        )}
         
         {lecturer.lecturerCourses && lecturer.lecturerCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <AnimatePresence>
-              {lecturer.lecturerCourses.map((course, index) => (
-                <motion.div 
-                  key={course._id}
-                  className="bg-[#1a1f2e] p-4 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group cursor-pointer relative overflow-hidden"
-                  variants={courseVariants}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover="hover"
-                  transition={{ delay: index * 0.05 }}
-                  onClick={() => alert('Course details coming soon')}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <FaBook className="text-yellow-400" />
-                      <span className="text-sm text-blue-300 font-medium">Course {index + 1}</span>
-                      {index === 0 && <span className="ml-2 px-2 py-0.5 rounded bg-green-700/30 text-xs text-green-300 font-semibold animate-bounce">New</span>}
+              {lecturer.lecturerCourses.map((course, index) => {
+                // ابحث عن تفاصيل الكورس من قائمة الكورسات الكاملة
+                const courseDetails = courses.find(c => c._id === course._id) || course;
+                return (
+                  <motion.div 
+                    key={course._id}
+                    className="bg-[#1a1f2e] p-4 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group cursor-pointer relative overflow-hidden"
+                    variants={courseVariants}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover="hover"
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <FaBook className="text-yellow-400" />
+                        <span className="text-sm text-blue-300 font-medium">Course {index + 1}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">{course._id.substring(0, 8)}...</span>
                     </div>
-                    <span className="text-xs text-gray-500">{course._id.substring(0, 8)}...</span>
-                  </div>
-                  <h4 className="text-gray-200 font-medium truncate" title={course.courseName}>{course.courseName}</h4>
-                  <div className="mt-2 flex items-center text-xs text-gray-400 gap-2">
-                    <FaCalendarAlt className="mr-1" /> Added recently
-                    <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-blue-400">Show Details</span>
-                  </div>
-                </motion.div>
-              ))}
+                    <h4 className="text-gray-200 font-medium truncate" title={course.courseName}>{course.courseName}</h4>
+                    <div className="mt-2 flex items-center text-xs text-gray-400 gap-2">
+                      <FaCalendarAlt className="mr-1" /> Added recently
+                      <button
+                        className="ml-auto text-blue-400 hover:underline hover:text-blue-300 bg-transparent border-none outline-none"
+                        onClick={() => setSelectedCourseDetails(courseDetails)}
+                        title="Show Details"
+                        type="button"
+                      >
+                        Show Details
+                      </button>
+                      <button
+                        className="ml-2 text-red-500 hover:text-red-700 bg-transparent border-none outline-none"
+                        title="Delete Course"
+                        onClick={() => setDeleteCourseId(course._id)}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
-      </div>
+          </div>
         ) : (
           <motion.div 
             className="bg-[#1a1f2e]/50 p-6 rounded-lg text-center text-gray-400"
@@ -542,6 +689,29 @@ const Details = () => {
           </motion.div>
         </motion.div>
       )}
+
+      {/* Modal تفاصيل الكورس */}
+      {selectedCourseDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl"
+              onClick={() => setSelectedCourseDetails(null)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg font-bold text-white mb-4">Course Details</h2>
+            <div className="text-gray-200 space-y-2">
+              <div><span className="font-semibold text-blue-300">Name:</span> {selectedCourseDetails.courseName}</div>
+              <div><span className="font-semibold text-blue-300">Code:</span> {selectedCourseDetails.courseCode}</div>
+              <div><span className="font-semibold text-blue-300">Department:</span> {selectedCourseDetails.department}</div>
+              <div><span className="font-semibold text-blue-300">Level:</span> {selectedCourseDetails.level}</div>
+              <div><span className="font-semibold text-blue-300">Semester:</span> {parseInt(selectedCourseDetails.semester) % 2 === 0 ? 2 : 1}</div>
+              <div><span className="font-semibold text-blue-300">ID:</span> {selectedCourseDetails._id}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -765,13 +935,13 @@ const AttendanceBarChart = ({ present, absent }) => {
           }}
         >
           <p className="font-bold" style={{ color: color, fontSize: '14px', marginBottom: '4px' }}>
-            {data.payload.name}
+            {data.name}
           </p>
           <p className="text-white text-sm">
             {data.value} Actions
           </p>
           <p className="text-gray-300 text-xs mt-1">
-            {`(${(data.value / (present + absent) * 100).toFixed(1)}%)`}
+            {`(${((data.value / (present + absent)) * 100).toFixed(1)}%)`}
           </p>
         </div>
       );
@@ -780,11 +950,15 @@ const AttendanceBarChart = ({ present, absent }) => {
   };
 
   return (
-    <BarResponsiveContainer width="100%" height={280}>
-      <BarChart 
-        data={data} 
-        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        barGap={30}
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart
+        data={data}
+        margin={{
+          top: 20,
+          right: 30,
+          left: 20,
+          bottom: 10,
+        }}
       >
         <defs>
           <linearGradient id="presentGradient" x1="0" y1="0" x2="0" y2="1">
@@ -795,7 +969,7 @@ const AttendanceBarChart = ({ present, absent }) => {
             <stop offset="0%" stopColor="#f87171" stopOpacity={0.9}/>
             <stop offset="100%" stopColor="#f87171" stopOpacity={0.6}/>
           </linearGradient>
-          <filter id="shadow" height="200%" width="200%" x="-50%" y="-50%">
+          <filter id="barShadow" height="200%" width="200%" x="-50%" y="-50%">
             <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000" floodOpacity="0.3"/>
           </filter>
         </defs>
@@ -815,7 +989,7 @@ const AttendanceBarChart = ({ present, absent }) => {
           tick={{ fill: '#9ca3af', fontSize: 12 }}
           width={40}
         />
-        <BarTooltip content={<CustomBarTooltip />} cursor={{fill: 'rgba(255, 255, 255, 0.05)'}} />
+        <Tooltip content={<CustomBarTooltip />} cursor={{fill: 'rgba(255, 255, 255, 0.05)'}} />
         <Bar 
           dataKey="value" 
           radius={[8, 8, 0, 0]}
@@ -823,7 +997,7 @@ const AttendanceBarChart = ({ present, absent }) => {
           isAnimationActive={true}
           animationBegin={200}
           animationDuration={1500}
-          filter="url(#shadow)"
+          filter="url(#barShadow)"
         >
           {data.map((entry, index) => (
             <Cell 
@@ -835,7 +1009,7 @@ const AttendanceBarChart = ({ present, absent }) => {
           ))}
         </Bar>
       </BarChart>
-    </BarResponsiveContainer>
+    </ResponsiveContainer>
   );
 };
 
