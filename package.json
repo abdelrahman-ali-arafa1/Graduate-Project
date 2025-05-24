@@ -2,14 +2,12 @@
   "name": "attendance-system",
   "version": "0.1.0",
   "private": true,
-
-"scripts": {
+  "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
-
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -26,6 +24,7 @@
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.12.1",
+    "lucide-react": "^0.511.0",
     "moment": "^2.30.1",
     "next": "^15.1.7",
     "react": "^18.3.1",

@@ -445,8 +445,8 @@ const Details = () => {
               >
                 &times;
               </button>
-              <h2 className="text-lg font-bold text-white mb-4">Confirm Delete Course</h2>
-              <div className="text-gray-200 mb-6">
+              <h2 className="text-lg font-bold text-[var(--foreground)] mb-4">Confirm Delete Course</h2>
+              <div className="text-[var(--foreground-secondary)] mb-6">
                 Are you sure you want to delete
                 <span className="text-red-400 font-bold mx-1">"{(courses.find(c => c._id === deleteCourseId)?.courseName) || "this course"}"</span>
                 from the instructor?
@@ -522,7 +522,7 @@ const Details = () => {
               whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)", scale: 1.04 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-gray-400 font-medium">Present</h4>
+                <h4 className="text-[var(--foreground-secondary)] font-medium">Present</h4>
                 <span className="bg-green-900/30 p-2 rounded-lg">
                   <FaCheckCircle className="text-green-400" />
                 </span>
@@ -531,7 +531,7 @@ const Details = () => {
                 <p className="text-3xl font-bold text-green-400">{instructorStats?.present ?? 0}</p>
                 <span className="text-xs text-green-400 font-semibold">actions</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Actions Present</p>
+              <p className="text-xs text-[var(--foreground-secondary)] mt-2">Actions Present</p>
             </motion.div>
             <motion.div 
               className="bg-[#1a1f2e] p-5 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group"
@@ -541,7 +541,7 @@ const Details = () => {
               whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)", scale: 1.04 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-gray-400 font-medium">Absent</h4>
+                <h4 className="text-[var(--foreground-secondary)] font-medium">Absent</h4>
                 <span className="bg-red-900/30 p-2 rounded-lg">
                   <FaTimesCircle className="text-red-400" />
                 </span>
@@ -550,7 +550,7 @@ const Details = () => {
                 <p className="text-3xl font-bold text-red-400">{instructorStats?.absent ?? 0}</p>
                 <span className="text-xs text-red-400 font-semibold">actions</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Actions Absent</p>
+              <p className="text-xs text-[var(--foreground-secondary)] mt-2">Actions Absent</p>
             </motion.div>
             <motion.div 
               className="bg-[#1a1f2e] p-5 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group"
@@ -560,7 +560,7 @@ const Details = () => {
               whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)", scale: 1.04 }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-gray-400 font-medium">Attendance Rate</h4>
+                <h4 className="text-[var(--foreground-secondary)] font-medium">Attendance Rate</h4>
                 <span className="bg-purple-900/30 p-2 rounded-lg">
                   <FaPercentage className="text-purple-400" />
                 </span>
@@ -569,7 +569,7 @@ const Details = () => {
                 <p className="text-3xl font-bold text-purple-400">{instructorStats?.showQttendanceRate ?? "0%"}</p>
                 <span className="text-xs text-purple-400 font-semibold">Rate</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Overall attendance</p>
+              <p className="text-xs text-[var(--foreground-secondary)] mt-2">Overall attendance</p>
             </motion.div>
           </div>
           
@@ -577,7 +577,7 @@ const Details = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             {/* Pie Chart Section */}
             <motion.div 
-              className="bg-[#1a1f2e] p-6 rounded-xl border border-[#2a2f3e] shadow-md animate-fadeIn overflow-hidden relative"
+              className="bg-[#1a1f2e] p-4 sm:p-6 rounded-xl border border-[#2a2f3e] shadow-md animate-fadeIn overflow-hidden relative"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
@@ -585,12 +585,12 @@ const Details = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-blue-900/5 to-purple-900/5"></div>
               <div className="relative">
                 <motion.h4 
-                  className="text-lg text-white font-semibold mb-4 flex items-center"
+                  className="text-base sm:text-lg text-white font-semibold mb-3 sm:mb-4 flex items-center"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 }}
                 >
-                  <span className="w-2 h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-3"></span>
+                  <span className="w-2 h-6 sm:h-8 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2 sm:mr-3"></span>
                   Attendance Distribution
                 </motion.h4>
                 
@@ -603,20 +603,20 @@ const Details = () => {
                   />
                   
                   {(!instructorStats?.present && !instructorStats?.absent) && (
-                    <div className="text-center text-gray-400 text-sm mt-4">
+                    <div className="text-center text-[var(--foreground-secondary)] text-sm mt-4">
                       No attendance data available for this instructor
                     </div>
                   )}
                 </div>
                 
-                <div className="flex justify-center mt-4 gap-6">
+                <div className="flex justify-center mt-2 sm:mt-4 gap-4 sm:gap-6">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-300">Present</span>
+                    <span className="text-xs sm:text-sm text-[var(--foreground-secondary)]">Present</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-300">Absent</span>
+                    <span className="text-xs sm:text-sm text-[var(--foreground-secondary)]">Absent</span>
                   </div>
                 </div>
               </div>
@@ -645,7 +645,7 @@ const Details = () => {
                   <AttendanceBarChart present={instructorStats?.present ?? 0} absent={instructorStats?.absent ?? 0} />
                   
                   {(!instructorStats?.present && !instructorStats?.absent) && (
-                    <div className="text-center text-gray-400 text-sm mt-4">
+                    <div className="text-center text-[var(--foreground-secondary)] text-sm mt-4">
                       No attendance data available for this instructor
                     </div>
                   )}
@@ -788,18 +788,44 @@ const AttendancePieChart = ({ data }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const COLORS = ["#4ade80", "#f87171"];
   const RADIAN = Math.PI / 180;
+  const [chartHeight, setChartHeight] = useState(280);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // التحقق من حجم الشاشة وتعديل حجم المخطط
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const mobile = window.innerWidth < 640;
+      setIsMobile(mobile);
+      setChartHeight(mobile ? 200 : 280);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
+  }, []);
 
   const renderActiveShape = (props) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
     const sin = Math.sin(-RADIAN * midAngle);
     const cos = Math.cos(-RADIAN * midAngle);
+    
+    // المسافة التي تظهر فيها التفاصيل تختلف بناءً على حجم الشاشة
+    const offset = isMobile ? 20 : 30;
+    
     const sx = cx + (outerRadius + 10) * cos;
     const sy = cy + (outerRadius + 10) * sin;
-    const mx = cx + (outerRadius + 30) * cos;
-    const my = cy + (outerRadius + 30) * sin;
+    const mx = cx + (outerRadius + offset) * cos;
+    const my = cy + (outerRadius + offset) * sin;
     const ex = mx + (cos >= 0 ? 1 : -1) * 22;
     const ey = my;
     const textAnchor = cos >= 0 ? 'start' : 'end';
+    
+    // تعديل حجم الخط بناءً على حجم الشاشة
+    const fontSize = isMobile ? 11 : 14;
+    const smallFontSize = isMobile ? 9 : 12;
 
     return (
       <g>
@@ -826,17 +852,21 @@ const AttendancePieChart = ({ data }) => {
           strokeWidth={1}
           opacity={0.5}
         />
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={2} />
-        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#fff" fontSize={14} fontWeight="bold">
-          {`${payload.name}`}
-        </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={12}>
-          {`${value} actions`}
-        </text>
-        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={12}>
-          {`(${(percent * 100).toFixed(1)}%)`}
-        </text>
+        {!isMobile && (
+          <>
+            <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={2} />
+            <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#fff" fontSize={fontSize} fontWeight="bold">
+              {`${payload.name}`}
+            </text>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={smallFontSize}>
+              {`${value} actions`}
+            </text>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={smallFontSize}>
+              {`(${(percent * 100).toFixed(1)}%)`}
+            </text>
+          </>
+        )}
       </g>
     );
   };
@@ -851,7 +881,7 @@ const AttendancePieChart = ({ data }) => {
   if (data.length === 0 || totalValue === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[200px]">
-        <p className="text-gray-400">No attendance data available</p>
+        <p className="text-[var(--foreground-secondary)] text-sm">No attendance data available</p>
       </div>
     );
   }
@@ -869,20 +899,20 @@ const AttendancePieChart = ({ data }) => {
             backgroundColor: color === '#4ade80' ? 'rgba(22, 101, 52, 0.9)' : 'rgba(153, 27, 27, 0.9)',
             border: `1px solid ${color}`,
             borderRadius: '8px',
-            padding: '10px 14px',
+            padding: isMobile ? '6px 10px' : '10px 14px',
             boxShadow: `0 4px 14px ${color}30`,
             backdropFilter: 'blur(4px)',
             color: '#fff',
             transition: 'all 0.2s ease'
           }}
         >
-          <p className="font-bold" style={{ color: color, fontSize: '14px', marginBottom: '4px' }}>
+          <p className="font-bold" style={{ color: color, fontSize: isMobile ? '12px' : '14px', marginBottom: '4px' }}>
             {data.name}
           </p>
-          <p className="text-white text-sm">
+          <p className="text-white" style={{ fontSize: isMobile ? '11px' : '14px' }}>
             {data.value} Actions
           </p>
-          <p className="text-gray-300 text-xs mt-1">
+          <p className="text-[var(--foreground-secondary)]" style={{ fontSize: isMobile ? '10px' : '12px', marginTop: '1px' }}>
             {`(${((data.value / totalValue) * 100).toFixed(1)}%)`}
           </p>
         </div>
@@ -892,7 +922,7 @@ const AttendancePieChart = ({ data }) => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={chartHeight}>
       <PieChart>
         <defs>
           <filter id="glow" height="300%" width="300%" x="-100%" y="-100%">
@@ -902,7 +932,6 @@ const AttendancePieChart = ({ data }) => {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          {/* Add gradient definitions for tooltip backgrounds */}
           <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#166534" stopOpacity={0.9}/>
             <stop offset="100%" stopColor="#166534" stopOpacity={0.7}/>
@@ -918,8 +947,8 @@ const AttendancePieChart = ({ data }) => {
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={80}
+          innerRadius={isMobile ? 40 : 60}
+          outerRadius={isMobile ? 60 : 80}
           fill="#8884d8"
           dataKey="value"
           onMouseEnter={onPieEnter}
@@ -943,18 +972,37 @@ const AttendancePieChart = ({ data }) => {
   );
 };
 
-// Improved bar chart with better styling and animations
+// تحسين مخطط الأعمدة ليكون متجاوب مع الشاشات الصغيرة
 const AttendanceBarChart = ({ present, absent }) => {
   const data = [
     { name: 'Present', value: present ?? 0, color: '#4ade80' },
     { name: 'Absent', value: absent ?? 0, color: '#f87171' }
   ];
   
+  const [chartHeight, setChartHeight] = useState(280);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // التحقق من حجم الشاشة وتعديل حجم المخطط
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const mobile = window.innerWidth < 640;
+      setIsMobile(mobile);
+      setChartHeight(mobile ? 200 : 280);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
+  }, []);
+  
   // If no data
   if (present === 0 && absent === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[200px]">
-        <p className="text-gray-400">No attendance data available</p>
+        <p className="text-[var(--foreground-secondary)] text-sm">No attendance data available</p>
       </div>
     );
   }
@@ -972,20 +1020,20 @@ const AttendanceBarChart = ({ present, absent }) => {
             backgroundColor: color === '#4ade80' ? 'rgba(22, 101, 52, 0.9)' : 'rgba(153, 27, 27, 0.9)',
             border: `1px solid ${color}`,
             borderRadius: '8px',
-            padding: '10px 14px',
+            padding: isMobile ? '6px 10px' : '10px 14px',
             boxShadow: `0 4px 14px ${color}30`,
             backdropFilter: 'blur(4px)',
             color: '#fff',
             transition: 'all 0.2s ease'
           }}
         >
-          <p className="font-bold" style={{ color: color, fontSize: '14px', marginBottom: '4px' }}>
+          <p className="font-bold" style={{ color: color, fontSize: isMobile ? '12px' : '14px', marginBottom: '4px' }}>
             {data.name}
           </p>
-          <p className="text-white text-sm">
+          <p className="text-white" style={{ fontSize: isMobile ? '11px' : '14px' }}>
             {data.value} Actions
           </p>
-          <p className="text-gray-300 text-xs mt-1">
+          <p className="text-[var(--foreground-secondary)]" style={{ fontSize: isMobile ? '10px' : '12px', marginTop: '1px' }}>
             {`(${((data.value / (present + absent)) * 100).toFixed(1)}%)`}
           </p>
         </div>
@@ -995,13 +1043,13 @@ const AttendanceBarChart = ({ present, absent }) => {
   };
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={chartHeight}>
       <BarChart
         data={data}
         margin={{
           top: 20,
-          right: 30,
-          left: 20,
+          right: isMobile ? 20 : 30,
+          left: isMobile ? 10 : 20,
           bottom: 10,
         }}
       >
@@ -1024,21 +1072,21 @@ const AttendanceBarChart = ({ present, absent }) => {
           stroke="#9ca3af" 
           axisLine={{ stroke: '#2a2f3e' }}
           tickLine={false}
-          tick={{ fill: '#9ca3af', fontSize: 14 }}
+          tick={{ fill: '#9ca3af', fontSize: isMobile ? 12 : 14 }}
         />
         <YAxis 
           stroke="#9ca3af" 
           allowDecimals={false}
           axisLine={{ stroke: '#2a2f3e' }}
           tickLine={false}
-          tick={{ fill: '#9ca3af', fontSize: 12 }}
-          width={40}
+          tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }}
+          width={isMobile ? 30 : 40}
         />
         <Tooltip content={<CustomBarTooltip />} cursor={{fill: 'rgba(255, 255, 255, 0.05)'}} />
         <Bar 
           dataKey="value" 
           radius={[8, 8, 0, 0]}
-          maxBarSize={80}
+          maxBarSize={isMobile ? 50 : 80}
           isAnimationActive={true}
           animationBegin={200}
           animationDuration={1500}

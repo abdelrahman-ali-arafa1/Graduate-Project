@@ -66,7 +66,7 @@ const AdminWeeklySummary = ({ data }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h3 className="text-lg font-medium mb-4 text-gray-300">{t('weeklySummary')}</h3>
+      <h3 className="text-lg font-medium mb-4 text-white">{t('weeklySummary')}</h3>
       
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -95,7 +95,7 @@ const AdminWeeklySummary = ({ data }) => {
         
         {highestAttendanceDay && (
           <div className="flex justify-between items-center">
-            <span className="text-gray-400">{t('bestDay')}</span>
+            <span className="text-[var(--foreground-secondary)]">{t('bestDay')}</span>
             <div className="text-right">
               <span className="text-white font-medium block">{highestAttendanceDay.day}</span>
               <span className="text-green-400 text-sm">
@@ -109,7 +109,7 @@ const AdminWeeklySummary = ({ data }) => {
         
         {lowestAttendanceDay && (
           <div className="flex justify-between items-center">
-            <span className="text-gray-400">{t('lowestDay')}</span>
+            <span className="text-[var(--foreground-secondary)]">{t('lowestDay')}</span>
             <div className="text-right">
               <span className="text-white font-medium block">{lowestAttendanceDay.day}</span>
               <span className="text-red-400 text-sm">

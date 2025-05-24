@@ -15,11 +15,11 @@ const poppins = Poppins({ subsets: ["latin"], weight: "400", display: 'swap' });
 export const metadata = {
   title: "FCAI Attendance System",
   description: "Manage and track student attendance efficiently",
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/images/logo.png',
-    shortcut: '/images/logo.png',
-  },
+  icons: [
+    { rel: 'icon', url: '/images/logo.png' },
+    { rel: 'apple-touch-icon', url: '/images/logo.png' },
+    { rel: 'shortcut icon', url: '/images/logo.png' }
+  ]
 };
 
 export default function RootLayout({ children }) {

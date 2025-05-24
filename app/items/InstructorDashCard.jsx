@@ -29,7 +29,7 @@ const InstructorDashCard = ({ title, value, percentage, isIncrease, icon, color 
     >
       <div className="flex flex-col h-full">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-gray-400 text-xs uppercase tracking-wider font-medium">{title}</h3>
+          <h3 className="text-[var(--foreground-secondary)] text-xs uppercase tracking-wider font-medium">{title}</h3>
           {icon && (
             <div className={`flex items-center justify-center p-2 rounded-lg bg-opacity-20 ${color || 'bg-blue-900/30'}`}>
               {icon}
@@ -39,7 +39,7 @@ const InstructorDashCard = ({ title, value, percentage, isIncrease, icon, color 
         
         <div className="flex items-end justify-between">
           <motion.span 
-            className="text-3xl font-bold text-white"
+            className="text-3xl font-bold text-[var(--foreground)]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}

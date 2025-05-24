@@ -2,42 +2,35 @@
 
 import React from 'react';
 import { useTheme } from './ThemeProvider';
-import { FaSun, FaMoon } from 'react-icons/fa';
+import { SunMoon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-  
+
   return (
     <motion.button
       onClick={toggleTheme}
-      className="relative rounded-full w-12 h-6 flex items-center justify-center transition-colors duration-300 focus:outline-none"
-      whileHover={{ scale: 1.05 }}
+      className="relative rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-300 focus:outline-none bg-[#232738] hover:bg-[#2c2f42] border border-gray-700 hover:border-[#7950f2]"
+      whileHover={{ scale: 1.08, rotate: 8 }}
       whileTap={{ scale: 0.95 }}
+      aria-label="Toggle theme"
     >
-      <span className="sr-only">Toggle {isDark ? 'Light' : 'Dark'} Mode</span>
-      
-      <div 
-        className={`w-full h-full rounded-full p-0.5 ${isDark ? 'bg-[#2c2f42]' : 'bg-[#232738]'}`}
+      <motion.span
+        key={isDark ? 'dark' : 'light'}
+        initial={{ rotate: 0, scale: 0.8, opacity: 0 }}
+        animate={{ rotate: 360, scale: 1, opacity: 1 }}
+        exit={{ rotate: 0, scale: 0.8, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="flex items-center justify-center"
       >
-        <motion.div 
-          className={`flex items-center justify-center w-5 h-5 rounded-full ${
-            isDark ? 'bg-[#7950f2]' : 'bg-gray-700'
-          }`}
-          initial={false}
-          animate={{ 
-            x: isDark ? 'calc(100% - 4px)' : '0%',
-          }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        >
-          {isDark ? (
-            <FaMoon className="text-white text-xs" />
-          ) : (
-            <FaSun className="text-[#7950f2] text-xs" />
-          )}
-        </motion.div>
-      </div>
+        <SunMoon
+          size={20}
+          className={isDark ? 'text-primary' : 'text-yellow-400'}
+          strokeWidth={2.2}
+        />
+      </motion.span>
     </motion.button>
   );
 } 

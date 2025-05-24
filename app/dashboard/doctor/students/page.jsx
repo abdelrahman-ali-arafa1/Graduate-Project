@@ -237,20 +237,20 @@ const Page = () => {
 
       {/* أدوات البحث والتصفية */}
       <motion.div
-        className="bg-[var(--secondary)] rounded-xl p-5 shadow-md"
+        className="bg-[var(--secondary)] rounded-xl p-4 sm:p-5 shadow-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
           {/* البحث */}
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FaSearch className="text-[var(--foreground-secondary)]" />
+              <FaSearch className="text-[var(--foreground-secondary)] text-sm" />
             </div>
             <input
               type="text"
-              className="w-full py-2 pl-10 pr-4 bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+              className="w-full py-2 pl-10 pr-4 text-sm bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
               placeholder="Search by name or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -260,10 +260,10 @@ const Page = () => {
           {/* تصفية حسب القسم */}
           <div className="md:w-1/4 relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FaFilter className="text-[var(--foreground-secondary)]" />
+              <FaFilter className="text-[var(--foreground-secondary)] text-sm" />
             </div>
             <select
-              className="w-full py-2 pl-10 pr-4 bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent appearance-none"
+              className="w-full py-2 pl-10 pr-4 text-sm bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent appearance-none"
               value={filterDepartment}
               onChange={(e) => setFilterDepartment(e.target.value)}
             >
@@ -279,10 +279,10 @@ const Page = () => {
           {/* ترتيب */}
           <div className="md:w-1/4 relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FaSort className="text-[var(--foreground-secondary)]" />
+              <FaSort className="text-[var(--foreground-secondary)] text-sm" />
             </div>
             <select
-              className="w-full py-2 pl-10 pr-4 bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent appearance-none"
+              className="w-full py-2 pl-10 pr-4 text-sm bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent appearance-none"
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [newSortBy, newSortOrder] = e.target.value.split("-");
@@ -309,19 +309,19 @@ const Page = () => {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         {filteredStudents.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[var(--primary)] scrollbar-track-transparent">
             <table className="min-w-full divide-y divide-[var(--border-color)]">
               <thead className="bg-[var(--background-secondary)]">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
                     onClick={() => changeSortBy("name")}
                   >
                     <div className="flex items-center">
                       <span>Name</span>
                       {sortBy === "name" && (
-                        <span className="ml-2">
+                        <span className="ml-1 sm:ml-2">
                           {sortOrder === "asc" ? "↑" : "↓"}
                         </span>
                       )}
@@ -329,19 +329,19 @@ const Page = () => {
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider hidden md:table-cell"
                   >
                     Email
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer hidden sm:table-cell"
                     onClick={() => changeSortBy("department")}
                   >
                     <div className="flex items-center">
-                      <span>Department</span>
+                      <span>Dept</span>
                       {sortBy === "department" && (
-                        <span className="ml-2">
+                        <span className="ml-1 sm:ml-2">
                           {sortOrder === "asc" ? "↑" : "↓"}
                         </span>
                       )}
@@ -349,13 +349,13 @@ const Page = () => {
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
                     onClick={() => changeSortBy("attendance")}
                   >
                     <div className="flex items-center">
-                      <span>Attendance</span>
+                      <span>Att.</span>
                       {sortBy === "attendance" && (
-                        <span className="ml-2">
+                        <span className="ml-1 sm:ml-2">
                           {sortOrder === "asc" ? "↑" : "↓"}
                         </span>
                       )}
@@ -365,23 +365,30 @@ const Page = () => {
               </thead>
               <tbody className="bg-[var(--secondary)] divide-y divide-[var(--border-color)]">
                 {filteredStudents.map((item) => (
-                  <tr
+                  <motion.tr
                     key={item.student._id}
                     className="hover:bg-[var(--background-secondary)] transition-colors"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--foreground)]">
-                      {item.student.name}
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-[var(--foreground)]">
+                      <div className="flex flex-col sm:hidden">
+                        <span>{item.student.name}</span>
+                        <span className="text-xs text-[var(--foreground-secondary)] mt-0.5">{item.student.department}</span>
+                      </div>
+                      <span className="hidden sm:block">{item.student.name}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground-secondary)]">
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden md:table-cell">
                       {item.student.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground-secondary)]">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--background-secondary)] text-[var(--foreground)]">
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden sm:table-cell">
+                      <span className="px-1.5 sm:px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--background-secondary)] text-[var(--foreground)]">
                         {item.student.department}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--foreground-secondary)]">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)]">
+                      <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         item.studentAttendanc > 0
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
@@ -389,17 +396,37 @@ const Page = () => {
                         {item.studentAttendanc}
                       </span>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="py-10 text-center text-[var(--foreground-secondary)]">
+          <div className="py-6 sm:py-10 text-center text-xs sm:text-sm text-[var(--foreground-secondary)]">
             No student data available
           </div>
         )}
       </motion.div>
+
+      {/* Mobile Pagination - Show for small screens only */}
+      {filteredStudents.length > 10 && (
+        <div className="mt-4 sm:mt-6 lg:hidden flex justify-center">
+          <div className="inline-flex rounded-md shadow-sm">
+            <button className="px-3 py-1 border border-[var(--border-color)] rounded-l-md text-xs text-[var(--foreground-secondary)] bg-[var(--secondary)] hover:bg-[var(--background-secondary)]">
+              Previous
+            </button>
+            <button className="px-3 py-1 border-t border-b border-r border-[var(--border-color)] text-xs text-white bg-[var(--primary)]">
+              1
+            </button>
+            <button className="px-3 py-1 border-t border-b border-r border-[var(--border-color)] text-xs text-[var(--foreground-secondary)] bg-[var(--secondary)] hover:bg-[var(--background-secondary)]">
+              2
+            </button>
+            <button className="px-3 py-1 border-t border-b border-r border-[var(--border-color)] rounded-r-md text-xs text-[var(--foreground-secondary)] bg-[var(--secondary)] hover:bg-[var(--background-secondary)]">
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

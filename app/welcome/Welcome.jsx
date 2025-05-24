@@ -56,7 +56,7 @@ export default function Welcome() {
         transition={{ duration: 0.5 }}
       >
         <motion.h1 
-          className="text-white text-5xl md:text-7xl font-bold mb-8 text-center drop-shadow-lg"
+          className="text-[var(--foreground)] text-5xl md:text-7xl font-bold mb-8 text-center drop-shadow-lg"
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: visible ? 0 : 30, opacity: visible ? 1 : 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
@@ -65,7 +65,7 @@ export default function Welcome() {
         </motion.h1>
         
         <motion.p
-          className="text-white text-opacity-90 text-xl mb-12 text-center max-w-xl"
+          className="text-[var(--foreground-secondary)] text-xl mb-12 text-center max-w-xl"
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: visible ? 0 : 30, opacity: visible ? 1 : 0 }}
           transition={{ duration: 0.7, delay: 0.4 }}

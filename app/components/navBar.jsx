@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 // Dynamically import Avatar to prevent SSR hydration mismatch
 const Avatar = dynamic(() => import("@mui/material/Avatar"), { ssr: false });
 
-export default function Navbar() {
+export default function Navbar({ setSidebarOpen, sidebarOpen }) {
   const userRole = useSelector((state) => state.userRole.isAdmin);
   const { t, isRTL } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
@@ -86,8 +86,8 @@ export default function Navbar() {
 
   return (
     <header 
-      className={`fixed w-full top-0 left-0 right-0 z-50 transition-all duration-300 bg-[var(--secondary-dark)] 
-        ${scrolled ? 'py-2 shadow-lg' : 'py-3'}`}
+      className={`fixed w-full top-0 left-0 right-0 z-50 transition-all duration-300 bg-gradient-to-r from-[var(--secondary-dark)] via-[#23243a] to-[var(--secondary-dark)]
+        ${scrolled ? 'py-2 shadow-2xl' : 'py-4 shadow-lg'} rounded-b-2xl`}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
@@ -97,6 +97,18 @@ export default function Navbar() {
           transition={{ duration: 0.5 }}
           className="flex items-center z-20"
         >
+          {/* Toggle sidebar button on mobile */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden mr-3 text-[var(--foreground)] hover:text-[var(--primary)]"
+          >
+            {sidebarOpen ? (
+              <IoMdClose size={24} />
+            ) : (
+              <FaBars size={22} />
+            )}
+          </button>
+
           <Link href="/dashboard" className="flex items-center">
             <div className="flex items-center mr-2">
               <Image 
@@ -107,9 +119,9 @@ export default function Navbar() {
                 className="rounded-full"
               />
             </div>
-            <h1 className="text-[var(--primary)] font-bold text-xl hidden sm:block">
-        FCAI Attendance System
-      </h1>
+            <h1 className="text-[var(--primary)] font-gugi text-2xl sm:text-3xl font-bold drop-shadow-lg tracking-wide hidden sm:block">
+              FCAI Attendance System
+            </h1>
           </Link>
         </motion.div>
 
@@ -189,7 +201,9 @@ export default function Navbar() {
                   {userRole ? "Administrator" : "Faculty Member"}
                 </p>
               </div>
-              <Avatar sx={{ bgcolor: "var(--primary)" }} />
+              <span className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-500">
+                <FaUserCircle className="text-white text-3xl" />
+              </span>
             </motion.button>
             
             <AnimatePresence>

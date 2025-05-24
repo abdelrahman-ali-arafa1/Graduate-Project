@@ -10,7 +10,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Link from "next/link";
 import { useDispatch } from "react-redux";
 import Header from "@/app/components/Header";
-import { FaUserAlt, FaLock, FaSignInAlt, FaGoogle, FaGithub, FaFacebook } from "react-icons/fa";
+import { FaUserAlt, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaUserTie, FaUserGraduate } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/app/components/LanguageProvider";
 import {
@@ -33,6 +33,8 @@ export default function Page() {
   const [errors, setErrors] = useState({ username: "", password: "", general: "" });
   const { t, isRTL } = useLanguage();
   const [rememberMe, setRememberMe] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Animation states
   const [activeInput, setActiveInput] = useState(null);
@@ -45,6 +47,18 @@ export default function Page() {
       username: user.username.trim() !== "",
       password: user.password.trim() !== "",
     });
+    
+    // التحقق من حجم الشاشة
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
   }, []);
 
   useEffect(() => {
@@ -193,24 +207,28 @@ export default function Page() {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center px-3 py-6 sm:px-6 sm:py-12">
       <Header />
       
-      <div className="container mx-auto flex flex-col md:flex-row rounded-xl overflow-hidden shadow-xl max-w-6xl">
+      <div className="container mx-auto flex flex-col md:flex-row rounded-xl overflow-hidden shadow-xl max-w-5xl">
         {/* Left panel - Login form */}
         <motion.div 
-          className="w-full md:w-1/2 bg-[var(--card-bg)] p-8 md:p-12"
+          className="w-full md:w-1/2 bg-[var(--card-bg)] p-6 sm:p-8 md:p-10 lg:p-12"
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : -30 }}
           transition={{ duration: 0.6 }}
         >
           <div className="w-full max-w-md mx-auto">
-            <div className="mb-10">
-              <h1 className="text-3xl font-bold text-[var(--foreground)]">
+            <div className="mb-6 sm:mb-8 text-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--foreground)]">
                 {isRTL ? "مرحباً بك" : "Welcome Back"}
               </h1>
-              <p className="mt-2 text-[var(--foreground-secondary)]">
+              <p className="mt-2 text-sm md:text-base text-[var(--foreground-secondary)]">
                 {isRTL ? "يرجى تسجيل الدخول للوصول إلى حسابك" : "Please sign in to access your account"}
               </p>
             </div>
@@ -218,7 +236,7 @@ export default function Page() {
             {/* Error message */}
             {errors.general && (
               <motion.div 
-                className="p-3 mb-6 text-sm text-white bg-red-500 rounded-md"
+                className="p-3 mb-5 text-sm text-white bg-red-500 rounded-md"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -227,7 +245,7 @@ export default function Page() {
               </motion.div>
             )}
             
-            <div className="space-y-6">
+            <div className="space-y-5 md:space-y-6">
               {/* Username field */}
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--foreground)]">
@@ -237,11 +255,11 @@ export default function Page() {
                   className={`relative ${shake ? 'animate-shake' : ''}`}
                 >
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <FaUserAlt className="text-[var(--foreground-secondary)]" />
+                    <FaUserAlt className="text-[var(--foreground-secondary)] text-sm" />
                   </div>
                   <input
                     type="text"
-                    className={`w-full py-3 pl-10 pr-4 text-[var(--foreground)] bg-[var(--card-bg)] border ${
+                    className={`w-full py-3 pl-10 pr-4 text-base text-[var(--foreground)] bg-[var(--card-bg)] border ${
                       errors.username ? 'border-red-500' : activeInput === 'username' ? 'border-[var(--primary)]' : 'border-[var(--border-color)]'
                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent`}
                     name="username"
@@ -253,7 +271,7 @@ export default function Page() {
                   />
                 </div>
                 {errors.username && (
-                  <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                  <p className="mt-1 text-xs text-red-500">{errors.username}</p>
                 )}
               </div>
               
@@ -268,11 +286,11 @@ export default function Page() {
                   className={`relative ${shake ? 'animate-shake' : ''}`}
                 >
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <FaLock className="text-[var(--foreground-secondary)]" />
+                    <FaLock className="text-[var(--foreground-secondary)] text-sm" />
                   </div>
                   <input
-                    type="password"
-                    className={`w-full py-3 pl-10 pr-4 text-[var(--foreground)] bg-[var(--card-bg)] border ${
+                    type={showPassword ? "text" : "password"}
+                    className={`w-full py-3 pl-10 pr-12 text-base text-[var(--foreground)] bg-[var(--card-bg)] border ${
                       errors.password ? 'border-red-500' : activeInput === 'password' ? 'border-[var(--primary)]' : 'border-[var(--border-color)]'
                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent`}
                     name="password"
@@ -282,10 +300,21 @@ export default function Page() {
                     onFocus={() => setActiveInput('password')}
                     onBlur={() => setActiveInput(null)}
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--foreground-secondary)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash className="text-sm sm:text-base" />
+                    ) : (
+                      <FaEye className="text-sm sm:text-base" />
+                    )}
+                  </button>
                 </div>
                 <div className="flex justify-between mt-2">
                   {errors.password && (
-                    <p className="text-sm text-red-500">{errors.password}</p>
+                    <p className="text-xs text-red-500">{errors.password}</p>
                   )}
                   <Link href="/auth/reset" className="text-sm text-[var(--primary)] hover:text-[var(--primary-light)] ml-auto">
                     {t('forgotPassword')}
@@ -312,19 +341,25 @@ export default function Page() {
                       <Radio 
                         sx={{
                           '&.Mui-checked': { color: 'var(--primary)' },
-                          padding: '8px',
+                          padding: { xs: '6px', sm: '8px' },
+                          '& .MuiSvgIcon-root': {
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                          },
                         }}
                       />
                     }
                     label={
-                      <span className={`text-sm text-[var(--foreground)] ${role === 'admin' ? 'font-medium' : ''}`}>
-                        {isRTL ? "مسؤول" : "Admin"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <FaUserTie className={`text-base ${role === 'admin' ? 'text-[var(--primary)]' : 'text-[var(--foreground-secondary)]'}`} />
+                        <span className={`text-sm text-[var(--foreground)] ${role === 'admin' ? 'font-medium' : ''}`}>
+                          {isRTL ? "مسؤول" : "Admin"}
+                        </span>
+                      </div>
                     }
                     className={`flex-1 m-0 ${role === 'admin' ? 'bg-[var(--card-bg)] shadow-sm rounded-lg' : ''}`}
                     sx={{
                       margin: 0,
-                      padding: '4px 12px',
+                      padding: { xs: '2px 8px 2px 4px', sm: '4px 10px 4px 6px' },
                       borderRadius: '6px',
                       justifyContent: 'center',
                     }}
@@ -335,19 +370,25 @@ export default function Page() {
                       <Radio 
                         sx={{
                           '&.Mui-checked': { color: 'var(--primary)' },
-                          padding: '8px',
+                          padding: { xs: '6px', sm: '8px' },
+                          '& .MuiSvgIcon-root': {
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                          },
                         }}
                       />
                     }
                     label={
-                      <span className={`text-sm text-[var(--foreground)] ${role === 'instructor' ? 'font-medium' : ''}`}>
-                        {isRTL ? "محاضر" : "Instructor"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <FaUserGraduate className={`text-base ${role === 'instructor' ? 'text-[var(--primary)]' : 'text-[var(--foreground-secondary)]'}`} />
+                        <span className={`text-sm text-[var(--foreground)] ${role === 'instructor' ? 'font-medium' : ''}`}>
+                          {isRTL ? "محاضر" : "Instructor"}
+                        </span>
+                      </div>
                     }
                     className={`flex-1 m-0 ${role === 'instructor' ? 'bg-[var(--card-bg)] shadow-sm rounded-lg' : ''}`}
                     sx={{
                       margin: 0,
-                      padding: '4px 12px',
+                      padding: { xs: '2px 8px 2px 4px', sm: '4px 10px 4px 6px' },
                       borderRadius: '6px',
                       justifyContent: 'center',
                     }}
@@ -356,7 +397,7 @@ export default function Page() {
               </div>
               
               {/* Remember me */}
-              <div className="flex items-center">
+              <div className="flex items-center py-1">
                 <Checkbox 
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
@@ -364,7 +405,10 @@ export default function Page() {
                     color: "var(--foreground-secondary)",
                     '&.Mui-checked': { color: "var(--primary)" },
                     padding: "0",
-                    marginRight: "8px"
+                    marginRight: "8px",
+                    '& .MuiSvgIcon-root': {
+                      fontSize: { xs: '1.2rem', sm: '1.5rem' },
+                    },
                   }}
                 />
                 <label className="text-sm text-[var(--foreground-secondary)]">
@@ -376,62 +420,25 @@ export default function Page() {
               <motion.button
                 onClick={handleLogin}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center py-3 px-4 bg-[var(--primary)] text-white font-medium rounded-lg transition duration-200 hover:bg-[var(--primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-opacity-50"
+                className="w-full flex items-center justify-center py-3 px-4 bg-[var(--primary)] text-white text-base font-medium rounded-lg transition duration-200 hover:bg-[var(--primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-opacity-50"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
               >
                 {isLoading ? (
                   <div className="flex items-center">
-                    <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {t('loggingIn')}
+                    <span className="text-sm sm:text-base">{t('loggingIn')}</span>
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    <FaSignInAlt className="mr-2" />
-                    {t('login')}
+                    <FaSignInAlt className="mr-2 text-sm sm:text-base" />
+                    <span className="text-sm sm:text-base">{t('login')}</span>
                   </div>
                 )}
               </motion.button>
-              
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--border-color)]"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-[var(--card-bg)] text-[var(--foreground-secondary)]">
-                    {isRTL ? "أو" : "OR"}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Social login buttons */}
-              <div className="grid grid-cols-3 gap-3">
-                <motion.button 
-                  className="flex justify-center items-center py-2 px-4 border border-[var(--border-color)] rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <FaGoogle className="text-lg text-red-500" />
-                </motion.button>
-                <motion.button 
-                  className="flex justify-center items-center py-2 px-4 border border-[var(--border-color)] rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <FaGithub className="text-lg" />
-                </motion.button>
-                <motion.button 
-                  className="flex justify-center items-center py-2 px-4 border border-[var(--border-color)] rounded-lg hover:bg-[var(--background-secondary)] transition-colors"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <FaFacebook className="text-lg text-blue-600" />
-                </motion.button>
-              </div>
               
               {/* Register link */}
               <div className="text-center mt-6">
@@ -447,7 +454,7 @@ export default function Page() {
           </div>
         </motion.div>
         
-        {/* Right panel - Image */}
+        {/* Right panel - Image (hidden on mobile) */}
         <motion.div 
           className="hidden md:block w-1/2 relative overflow-hidden"
           initial={{ opacity: 0, x: 50 }}

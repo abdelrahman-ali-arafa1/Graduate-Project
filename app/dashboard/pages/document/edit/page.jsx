@@ -107,7 +107,7 @@ const DocumentEdit = () => {
                     </motion.div>
                     
                     <h2 className="text-2xl font-bold text-white mb-2">No Data Available</h2>
-                    <p className="text-gray-400 mb-6">
+                    <p className="text-[var(--foreground-secondary)] mb-6">
                         You need to upload an Excel sheet before you can edit data.
                         Redirecting you to the upload page in <span className="text-amber-400 font-bold">{redirectCountdown}</span> seconds...
                     </p>
@@ -273,8 +273,8 @@ const DocumentEdit = () => {
                     >
                         <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-gray-400 text-sm">Departments</p>
-                                <h3 className="text-2xl font-bold text-white mt-1">
+                                <p className="text-[var(--foreground-secondary)] text-sm">Departments</p>
+                                <h3 className="text-2xl font-bold text-[var(--foreground)] mt-1">
                                     4
                                 </h3>
                             </div>
@@ -290,8 +290,8 @@ const DocumentEdit = () => {
                     >
                         <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-gray-400 text-sm">Levels</p>
-                                <h3 className="text-2xl font-bold text-white mt-1">
+                                <p className="text-[var(--foreground-secondary)] text-sm">Levels</p>
+                                <h3 className="text-2xl font-bold text-[var(--foreground)] mt-1">
                                     4
                                 </h3>
                             </div>

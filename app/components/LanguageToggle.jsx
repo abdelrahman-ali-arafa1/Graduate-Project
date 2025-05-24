@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useLanguage } from './LanguageProvider';
-import { FaGlobe } from 'react-icons/fa';
+import { Languages } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LanguageToggle() {
@@ -16,7 +16,7 @@ export default function LanguageToggle() {
       whileHover={{ scale: 1.05, backgroundColor: "#2c2f42" }}
       whileTap={{ scale: 0.95 }}
     >
-      <FaGlobe className="text-[#7950f2] text-xs" />
+      <Languages size={18} className="text-primary" />
       <span className="text-xs font-medium">
         {language === 'ar' ? 'EN' : 'عربي'}
       </span>
