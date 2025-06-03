@@ -218,6 +218,15 @@ const StudentsEditPage = () => {
           transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
         />
       </motion.div>
+      {/* Student Count */}
+      <motion.div
+        className="mt-8 mb-4 text-gray-400 text-sm"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        Showing {filteredStudents.length} students
+      </motion.div>
       {/* Students Table Card */}
       <motion.div
         className="bg-[#232738] rounded-xl p-6 shadow-md border border-[#2a2f3e] overflow-x-auto relative"
