@@ -206,10 +206,9 @@ export const attendanceApiSlice = createApi({
     
     addStudentsSheet: builder.mutation({
       query: (users) => {
-        if (!users || !Array.isArray(users.students)) {
+        if (!users || !Array.isArray(users)) {
           throw new Error("Student data is invalid");
         }
-        
         return {
           url: `/studentInfo`,
           method: "POST",

@@ -22,7 +22,6 @@ const DocumentUpload = () => {
   // New state variables
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
-  const [selectedSemester, setSelectedSemester] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', or null
   const [statusMessage, setStatusMessage] = useState('');
@@ -33,7 +32,6 @@ const DocumentUpload = () => {
 
   const levels = ["1", "2", "3", "4"];
   const departments = ["CS", "IS", "AI", "BIO"];
-  const semesters = ["Semester 1", "Semester 2"];
 
   // Check if data exists
   const hasData = Array.isArray(uploadedData) && uploadedData.length > 0;
@@ -44,6 +42,15 @@ const DocumentUpload = () => {
 
   const handleUploadClick = (e) => {
     e.preventDefault();
+    if (!selectedLevel || !selectedDepartment) {
+      setUploadStatus("error");
+      setStatusMessage("Please select level and department before uploading the file");
+      setTimeout(() => {
+        setUploadStatus(null);
+        setStatusMessage("");
+      }, 3000);
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -143,8 +150,42 @@ const DocumentUpload = () => {
         // Convert first sheet to JSON
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-        
+        let jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        // --- تحقق من تطابق level و department مع الفلتر ---
+        const mismatchRow = jsonData.find(row => {
+          const rowLevel = (row.level || row.Level || row.LEVEL || '').toString();
+          const rowDept = (row.department || row.Department || row.DEPARTMENT || '').toString().toUpperCase();
+          return (rowLevel && rowLevel !== selectedLevel) || (rowDept && rowDept !== selectedDepartment);
+        });
+        if (mismatchRow) {
+          setIsUploading(false);
+          setUploadStatus("error");
+          setStatusMessage("All rows in the sheet must have the same level and department as selected in the filters.");
+          setTimeout(() => {
+            setUploadStatus(null);
+            setStatusMessage('');
+          }, 4000);
+          return;
+        }
+        // --- نهاية التحقق ---
+
+        // --- NEW: Add level/department columns if missing ---
+        const hasLevel = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'level');
+        const hasDepartment = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'department');
+
+        jsonData = jsonData.map(row => {
+          const newRow = { ...row };
+          if (!hasLevel && selectedLevel) {
+            newRow['level'] = selectedLevel;
+          }
+          if (!hasDepartment && selectedDepartment) {
+            newRow['department'] = selectedDepartment;
+          }
+          return newRow;
+        });
+        // --- END NEW ---
+
         // Validate the data
         const errors = validateExcelData(jsonData);
         
@@ -221,9 +262,9 @@ const DocumentUpload = () => {
     }
 
     // Check if filters are selected
-    if (!selectedLevel || !selectedDepartment || !selectedSemester) {
+    if (!selectedLevel || !selectedDepartment) {
       setUploadStatus("error");
-      setStatusMessage("Please select level, department and semester before saving");
+      setStatusMessage("Please select level and department before saving");
       setTimeout(() => {
         setUploadStatus(null);
         setStatusMessage('');
@@ -249,19 +290,6 @@ const DocumentUpload = () => {
       setUploadStatus("error");
       setStatusMessage("Failed to save data to the database. Please try again.");
       
-      setTimeout(() => {
-        setUploadStatus(null);
-        setStatusMessage('');
-      }, 3000);
-    }
-  };
-
-  const handleEditClick = () => {
-    if (hasData) {
-      router.push('/dashboard/pages/document/edit');
-    } else {
-      setUploadStatus("error");
-      setStatusMessage("No data to edit. Please upload an Excel file first.");
       setTimeout(() => {
         setUploadStatus(null);
         setStatusMessage('');
@@ -588,7 +616,7 @@ const DocumentUpload = () => {
             </div>
 
             {/* Department Filter */}
-            <div className="mb-6">
+            <div>
               <label className="block text-gray-400 mb-3 text-sm">
                 Select Department
               </label>
@@ -611,31 +639,6 @@ const DocumentUpload = () => {
                 ))}
               </div>
             </div>
-
-            {/* Semester Filter */}
-            <div>
-              <label className="block text-gray-400 mb-3 text-sm">
-                Select Semester
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {semesters.map((semester) => (
-                  <motion.button
-                    key={semester}
-                    onClick={() => setSelectedSemester(semester)}
-                    className={`py-2 px-3 rounded-lg text-center ${
-                      selectedSemester === semester
-                        ? 'bg-green-600 text-white'
-                        : 'bg-[#232738] text-gray-300 hover:bg-[#2a2f3e]'
-                    } transition-colors`}
-                    variants={filterItemVariants}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {semester}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
           </motion.div>
 
           {/* Action Buttons */}
@@ -643,16 +646,6 @@ const DocumentUpload = () => {
             className="flex flex-col gap-4"
             variants={itemVariants}
           >
-            <motion.button
-              onClick={handleEditClick}
-              className={`w-full py-3 px-4 bg-[#1a1f2e] hover:bg-[#2a2f3e] border border-[#2a2f3e] rounded-lg flex items-center justify-center gap-3 ${hasData ? 'text-white' : 'text-gray-500'} font-medium transition-colors`}
-              whileHover={hasData ? { scale: 1.02 } : {}}
-              whileTap={hasData ? { scale: 0.98 } : {}}
-            >
-              <FaEdit className={hasData ? "text-purple-400" : "text-gray-500"} />
-              Edit Excel Data
-            </motion.button>
-            
             <motion.button
               onClick={handleFileSave}
               className={`w-full py-3 px-4 ${
@@ -694,7 +687,7 @@ const DocumentUpload = () => {
               </li>
               <li className="flex items-start gap-2">
                 <div className="min-w-[20px] mt-1">•</div>
-                <p>Select level, department, and semester before saving</p>
+                <p>Select level and department before saving</p>
               </li>
             </ul>
           </motion.div>

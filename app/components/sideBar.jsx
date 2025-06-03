@@ -24,6 +24,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard/pages/home" },
     { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/pages/staff" },
     { icon: <FaFolder />, label: "Documents", href: "/dashboard/pages/document" },
+    { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/pages/document/studentsEdit" },
     { icon: <SlCalender />, label: "Calendar", href: "#" },
     { icon: <FaMessage />, label: "Messages", href: "#" },
   ] : [
