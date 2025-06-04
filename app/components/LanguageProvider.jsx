@@ -1,104 +1,21 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 
 // Create context
 const LanguageContext = createContext({
-  language: 'ar',
+  language: 'en',
   setLanguage: () => {},
   toggleLanguage: () => {},
-  isRTL: true,
+  isRTL: false,
   t: (key) => key,
 });
 
 // Hook to use the language context
 export const useLanguage = () => useContext(LanguageContext);
 
-// Translations
+// Translations - only English now
 const translations = {
-  ar: {
-    // Common
-    welcome: 'مرحباً بكم',
-    login: 'تسجيل الدخول',
-    logout: 'تسجيل الخروج',
-    loading: 'جاري التحميل...',
-    fcaiAttendance: 'نظام الحضور الإلكتروني',
-    fullTitle: 'نظام الحضور الإلكتروني لكلية الحاسبات والذكاء الاصطناعي',
-    systemDescription: 'سجّل حضورك بسهولة وأمان باستخدام نظامنا المتطور للتعرف على رمز QR. تتبع الحضور والمشاركة في الفصول بكفاءة.',
-    
-    // Login page
-    username: 'اسم المستخدم',
-    password: 'كلمة المرور',
-    enterUsername: 'أدخل اسم المستخدم',
-    enterPassword: 'أدخل كلمة المرور',
-    rememberMe: 'تذكرني',
-    forgotPassword: 'نسيت كلمة المرور؟',
-    loggingIn: 'جاري تسجيل الدخول...',
-    welcomeBack: 'مرحباً بعودتك',
-    pleaseSignIn: 'يرجى تسجيل الدخول للوصول إلى لوحة التحكم',
-    continueWith: 'أو تسجيل الدخول باستخدام',
-    registerNow: 'سجل الآن',
-    dontHaveAccount: 'ليس لديك حساب؟',
-    
-    // QR code attendance
-    qrCodeAttendance: 'الحضور عبر رمز QR',
-    scanQrCode: 'امسح رمز QR للتسجيل',
-    attendanceTracking: 'تتبّع الحضور بسهولة',
-    
-    // Form validation
-    usernameRequired: 'يرجى إدخال اسم المستخدم',
-    passwordRequired: 'يرجى إدخال كلمة المرور',
-    passwordTooShort: 'كلمة المرور قصيرة جداً',
-    loginFailed: 'فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك.',
-    
-    // Dashboard
-    adminDashboard: 'لوحة تحكم المسؤول',
-    instructorDashboard: 'لوحة تحكم المدرس',
-    totalStudents: 'إجمالي الطلاب',
-    present: 'حاضر',
-    absent: 'غائب',
-    reportingPeriod: 'فترة التقرير',
-    forThePeriod: 'للفترة:',
-    weeklyAttendanceTrends: 'اتجاهات الحضور الأسبوعية',
-    attendanceDistribution: 'توزيع الحضور',
-    weeklySummary: 'ملخص أسبوعي',
-    dailyAttendance: 'الحضور اليومي',
-    refresh: 'تحديث',
-    loadingData: 'جاري تحميل البيانات...',
-    errorLoadingData: 'خطأ في تحميل البيانات',
-    serverConnectionError: 'لا يمكن الاتصال بالخادم',
-    pleaseRefresh: 'يرجى تحديث الصفحة أو التواصل مع الدعم الفني.',
-    retry: 'إعادة المحاولة',
-    noAttendanceData: 'لا توجد بيانات حضور متاحة. يرجى المحاولة مرة أخرى لاحقاً.',
-    last7Days: 'آخر 7 أيام',
-    attendanceRate: 'معدل الحضور',
-    
-    // Weekly Summary
-    totalPresent: 'إجمالي الحضور',
-    totalAbsent: 'إجمالي الغياب',
-    overallAttendanceRate: 'معدل الحضور الإجمالي',
-    bestDay: 'أفضل يوم',
-    lowestDay: 'أقل يوم',
-    
-    // Daily Attendance
-    date: 'التاريخ',
-    day: 'اليوم',
-    rate: 'المعدل',
-    status: 'الحالة',
-    good: 'جيد',
-    average: 'متوسط',
-    poor: 'ضعيف',
-    noData: 'لا توجد بيانات',
-
-    // New Dashboard Elements
-    overview: 'نظرة عامة',
-    details: 'التفاصيل',
-    performanceSummary: 'ملخص الأداء',
-    weeklyReport: 'تقرير أسبوعي',
-    averageAttendance: 'متوسط الحضور',
-    totalSessions: 'إجمالي الجلسات',
-    weekly: 'أسبوعي'
-  },
   en: {
     // Common
     welcome: 'Welcome',
@@ -133,6 +50,7 @@ const translations = {
     passwordRequired: 'Please enter a password',
     passwordTooShort: 'Password is too short',
     loginFailed: 'Login failed. Please check your credentials.',
+    invalidRoleAccess: 'Access denied for this account type',
     
     // Dashboard
     adminDashboard: 'Admin Dashboard',
@@ -186,33 +104,30 @@ const translations = {
 
 // Language provider component
 export function LanguageProvider({ children }) {
-  // Use language from local storage if available, default to Arabic
-  const [language, setLanguage] = useState('ar');
-  const isRTL = language === 'ar';
+  // Always use English
+  const language = 'en';
+  const isRTL = false;
 
-  // Initialize language based on localStorage
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('language');
-    if (savedLanguage) {
-      setLanguage(savedLanguage);
-    }
-  }, []);
+  // These functions are kept for compatibility but don't actually change the language
+  const setLanguage = () => {
+    // No-op function - language stays English
+    console.log("Language switching is disabled - using English only");
+  };
 
-  // Update dir attribute and localStorage when language changes
-  useEffect(() => {
-    document.documentElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
-    localStorage.setItem('language', language);
-  }, [language, isRTL]);
-
-  // Toggle between Arabic and English
   const toggleLanguage = () => {
-    setLanguage(prevLang => (prevLang === 'ar' ? 'en' : 'ar'));
+    // No-op function - language stays English
+    console.log("Language switching is disabled - using English only");
   };
 
-  // Translation function
+  // Translation function - now only returns English translations
   const t = (key) => {
-    return translations[language][key] || key;
+    return translations.en[key] || key;
   };
+
+  // Ensure LTR direction is set
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('dir', 'ltr');
+  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, isRTL, t }}>

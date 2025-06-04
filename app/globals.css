@@ -184,6 +184,7 @@ img {
   color: var(--foreground);
   outline: none;
   transition: all 0.2s ease;
+  text-align: left;
 }
 
 .input-field:focus {
@@ -623,4 +624,21 @@ img {
   .heading-md {
     font-size: 1.25rem;
   }
+}
+
+/* Convert RTL margin/padding to LTR */
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.pl-2 {
+  padding-left: 0.5rem;
+}
+
+.pr-2 {
+  padding-right: 0.5rem;
 }

@@ -6,6 +6,8 @@ import { useSelector } from "react-redux";
 import { useGetStudentsByDateQuery } from "@/app/Redux/features/attendanceApiSlice"; // New hook for students
 import { useGetCourseSessionsQuery } from "@/app/Redux/features/sessionApiSlice"; // Hook for sessions
 import { motion } from "framer-motion";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
   FaSearch,
   FaFilter,
@@ -13,6 +15,7 @@ import {
   FaUserGraduate,
   FaBookOpen,
   FaCalendarAlt,
+  FaDownload,
 } from "react-icons/fa";
 
 // Helper function to format date to DD/MM/YYYY
@@ -191,6 +194,53 @@ const Page = () => {
     }
   };
 
+  // Export data to Excel
+  const handleExportToExcel = () => {
+    if (filteredStudents.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+
+    // Format data for export based on whether date is selected or not
+    const exportData = filteredStudents.map(item => {
+      const student = selectedDate ? item : item.student;
+      const attendanceInfo = selectedDate ? "Present" : item.studentAttendanc;
+      
+      return {
+        'Student ID': student?.studentID || (student?._id ? student._id.substring(0, 8) : ''),
+        'Name': student?.name || '',
+        'Email': student?.email || '',
+        'Department': student?.department || '',
+        'Level': student?.level || '',
+        'Course': selectedCourse?.courseName || '',
+        [selectedDate ? 'Status' : 'Attendance']: attendanceInfo
+      };
+    });
+
+    // Convert JSON to a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Create a new workbook and append the worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+
+    // Write the file and trigger download
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    // Save the file with formatted date if date is selected
+    const fileName = selectedDate 
+      ? `${selectedCourse.courseName}_Students_${formatDate(selectedDate)}.xlsx`
+      : `${selectedCourse.courseName}_Students.xlsx`;
+    
+    saveAs(data, fileName);
+  };
+
   // إذا لم يتم اختيار مقرر، عرض رسالة
   if (!selectedCourse) {
     return (
@@ -302,9 +352,11 @@ const Page = () => {
               </span>
             </div>
           </div>
-          <div className="bg-[var(--background-secondary)] px-3 py-1 rounded-full text-sm flex items-center">
-            <FaUserGraduate className="mr-2 text-[var(--primary)]" />
-            <span>{filteredStudents.length} Students</span>
+          <div className="flex items-center gap-2">
+            <div className="bg-[var(--background-secondary)] px-3 py-1 rounded-full text-sm flex items-center">
+              <FaUserGraduate className="mr-2 text-[var(--primary)]" />
+              <span>{filteredStudents.length} Students</span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -316,6 +368,19 @@ const Page = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
+        <div className="flex flex-wrap items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-[var(--foreground-secondary)]">
+            {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} found
+          </h3>
+          <button
+            onClick={handleExportToExcel}
+            className="bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-colors"
+            disabled={filteredStudents.length === 0}
+          >
+            <FaDownload className="text-xs" />
+            <span>Export to Excel</span>
+          </button>
+        </div>
         <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
           {/* البحث */}
           <div className="flex-1 relative">

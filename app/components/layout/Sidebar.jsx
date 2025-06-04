@@ -73,7 +73,6 @@ const Sidebar = () => {
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard" },
     { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/pages/staff" },
     { icon: <FaFolder />, label: "Documents", href: "/dashboard/pages/document" },
-    { icon: <SlCalender />, label: "Calendar", href: "/dashboard/calendar" },
     { icon: <FaMessage />, label: "Messages", href: "/dashboard/messages" },
   ] : [
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard/doctor" },
@@ -82,7 +81,6 @@ const Sidebar = () => {
     { icon: <FaClipboardList />, label: "Manual Attendance", href: "#", onClick: handleManualAttendanceClick },
     { icon: <MdPeopleAlt />, label: "Students", href: "/dashboard/doctor/students" },
     { icon: <MdPeopleAlt />, label: "Apology for attendance", href: "/dashboard/doctor/apology" },
-    { icon: <SlCalender />, label: "Calendar", href: "/dashboard/doctor/calendar" },
     { icon: <FaMessage />, label: "Messages", href: "/dashboard/doctor/messages" },
   ];
 

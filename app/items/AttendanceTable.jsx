@@ -52,6 +52,35 @@ const getAttendanceStatus = (student) => {
          "Not recorded";
 };
 
+// تعديل ظهور رسائل الحضور والغياب
+const AttendanceButton = ({ onClick, color, icon, disabled, tooltipText, tooltipClass = "" }) => {
+  const isDefaultTooltip = !tooltipText.includes("Already");
+  
+  return (
+    <div className="relative">
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
+          disabled ? 
+          'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
+          `${color} text-white hover:shadow-lg hover:-translate-y-0.5`
+        } ${tooltipClass}`}
+      >
+        {icon}
+      </button>
+      
+      {/* Status indicator that will be displayed on hover without tooltips */}
+      {disabled && (
+        <div className={`absolute right-0 -top-10 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+          ${tooltipText.includes("present") ? "bg-green-600" : "bg-red-600"} text-white opacity-0 group-hover:opacity-100 transition-opacity`}>
+          {tooltipText}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // تولتيب مخصص حديث للحضور
 const CustomTooltip = styled(({ className, ...props }) => (
   <MuiTooltip
@@ -194,8 +223,6 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
 
   const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   
   // Sorting and filtering states
   const [sortField, setSortField] = useState("name");
@@ -287,14 +314,6 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
     });
   }, [filteredUsers, sortField, sortDirection]);
 
-  // Calculate visible rows for current page
-  const visibleRows = useMemo(() => {
-    return sortedUsers.slice(
-      page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
-    );
-  }, [page, rowsPerPage, sortedUsers]);
-
   // Handle sort click
   const handleSort = (field) => {
     if (sortField === field) {
@@ -385,42 +404,41 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
     }
 
     const statusMessage = status === "present" ? "present" : "absent";
-    if (window.confirm(`Mark ${row.student?.name || 'student'} as ${statusMessage}?`)) {
-      try {
-        const newAttendance = {
-          student: row.student?._id,
-          sessionID: sessionId,
-          attendanceStatus: status,
-          sessionType: lecturerRole === "instructor" ? "lecture" : "section",
-          timestamp: new Date().toISOString()
-        };
+    
+    // No confirmation dialog for any status
+    try {
+      const newAttendance = {
+        student: row.student?._id,
+        sessionID: sessionId,
+        attendanceStatus: status,
+        sessionType: lecturerRole === "instructor" ? "lecture" : "section",
+        timestamp: new Date().toISOString()
+      };
 
-        console.log("Sending attendance data:", newAttendance);
+      console.log("Sending attendance data:", newAttendance);
 
-        // Validate data before sending
-        if (!newAttendance.student || !newAttendance.sessionID) {
-          throw new Error("Incomplete attendance data");
-        }
-
-        const response = await addStudentAttendance({
-          courseId: storedCourse._id || courseId,
-          newUser: newAttendance,
-        });
-
-        console.log("Attendance response:", response);
-
-        // Show success message with student name
-        window.alert(`Successfully marked ${row.student?.name || 'student'} as ${statusMessage}`);
-        
-        // Refresh data 
-        if (refetch) {
-          console.log("Refetching attendance data");
-          refetch();
-        }
-      } catch (err) {
-        console.error("Failed to add attendance:", err);
-        window.alert(`Failed to record attendance: ${err.message || "Unexpected error occurred"}`);
+      // Validate data before sending
+      if (!newAttendance.student || !newAttendance.sessionID) {
+        throw new Error("Incomplete attendance data");
       }
+
+      const response = await addStudentAttendance({
+        courseId: storedCourse._id || courseId,
+        newUser: newAttendance,
+      });
+
+      console.log("Attendance response:", response);
+      
+      // No success message alert for any status
+      
+      // Refresh data 
+      if (refetch) {
+        console.log("Refetching attendance data");
+        refetch();
+      }
+    } catch (err) {
+      console.error("Failed to add attendance:", err);
+      window.alert(`Failed to record attendance: ${err.message || "Unexpected error occurred"}`);
     }
   };
   
@@ -463,43 +481,107 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
   return (
     <div className="container mx-auto px-0 sm:px-4 py-6 bg-[#0a0e17] min-h-screen">
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-[#1a1f2e] p-5 rounded-lg shadow-lg border border-[#2a2f3e] hover:shadow-xl transition-all"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative bg-gradient-to-br from-[#1a1f2e] to-[#131824] p-6 rounded-xl border border-[#2a2f3e] hover:border-blue-500/30 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.8)] hover:shadow-[0_20px_35px_-16px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all duration-300"
+          whileHover={{ y: -5 }}
         >
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1">Total Students</p>
-          <h3 className="text-3xl font-bold text-white">{totalStudents}</h3>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-blue-300/70 text-xs uppercase tracking-wider font-semibold mb-1">Total Students</p>
+              <h3 className="text-4xl font-bold text-white bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">{totalStudents}</h3>
+            </div>
+            <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/20">
+              <svg className="w-6 h-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4 h-2 w-full bg-blue-900/20 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="h-full bg-gradient-to-r from-blue-400 to-blue-500"
+            />
+          </div>
         </motion.div>
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-[#1a1f2e] p-5 rounded-lg shadow-lg border border-[#2a2f3e] hover:shadow-xl transition-all"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="relative bg-gradient-to-br from-[#1a1f2e] to-[#131824] p-6 rounded-xl border border-[#2a2f3e] hover:border-green-500/30 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.8)] hover:shadow-[0_20px_35px_-16px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all duration-300"
+          whileHover={{ y: -5 }}
         >
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1">Present</p>
-          <h3 className="text-3xl font-bold text-green-400">{presentStudents}</h3>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-green-300/70 text-xs uppercase tracking-wider font-semibold mb-1">Present</p>
+              <h3 className="text-4xl font-bold text-white bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">{presentStudents}</h3>
+            </div>
+            <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/20">
+              <svg className="w-6 h-6 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4 h-2 w-full bg-green-900/20 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${(presentStudents / Math.max(totalStudents, 1)) * 100}%` }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="h-full bg-gradient-to-r from-green-400 to-green-500"
+            />
+          </div>
         </motion.div>
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-[#1a1f2e] p-5 rounded-lg shadow-lg border border-[#2a2f3e] hover:shadow-xl transition-all"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="relative bg-gradient-to-br from-[#1a1f2e] to-[#131824] p-6 rounded-xl border border-[#2a2f3e] hover:border-red-500/30 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.8)] hover:shadow-[0_20px_35px_-16px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all duration-300"
+          whileHover={{ y: -5 }}
         >
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1">Absent</p>
-          <h3 className="text-3xl font-bold text-red-400">{absentStudents}</h3>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-red-300/70 text-xs uppercase tracking-wider font-semibold mb-1">Absent</p>
+              <h3 className="text-4xl font-bold text-white bg-gradient-to-r from-white to-red-100 bg-clip-text text-transparent">{absentStudents}</h3>
+            </div>
+            <div className="p-3 rounded-lg bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/20">
+              <svg className="w-6 h-6 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4 h-2 w-full bg-red-900/20 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${(absentStudents / Math.max(totalStudents, 1)) * 100}%` }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="h-full bg-gradient-to-r from-red-400 to-red-500"
+            />
+          </div>
         </motion.div>
+
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-[#1a1f2e] p-5 rounded-lg shadow-lg border border-[#2a2f3e] hover:shadow-xl transition-all"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="relative bg-gradient-to-br from-[#1a1f2e] to-[#131824] p-6 rounded-xl border border-[#2a2f3e] hover:border-purple-500/30 shadow-[0_10px_25px_-12px_rgba(0,0,0,0.8)] hover:shadow-[0_20px_35px_-16px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all duration-300"
+          whileHover={{ y: -5 }}
         >
-          <p className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1">Attendance Rate</p>
-          <div className="flex items-center">
-            <h3 className="text-3xl font-bold text-blue-400">{attendanceRate}%</h3>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-purple-300/70 text-xs uppercase tracking-wider font-semibold mb-1">Attendance Rate</p>
+              <h3 className="text-4xl font-bold text-white bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">{attendanceRate}%</h3>
+            </div>
             <div className="ml-3 w-16 h-16 relative">
               <svg className="w-full h-full" viewBox="0 0 36 36">
                 <path
@@ -507,22 +589,39 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                     a 15.9155 15.9155 0 0 1 0 31.831
                     a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="rgba(96, 165, 250, 0.2)"
+                  stroke="rgba(167, 139, 250, 0.2)"
                   strokeWidth="3"
+                  strokeLinecap="round"
                   strokeDasharray="100, 100"
                 />
-                <path
+                <motion.path
                   d="M18 2.0845
                     a 15.9155 15.9155 0 0 1 0 31.831
                     a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#60a5fa"
+                  stroke="url(#gradient)"
                   strokeWidth="3"
-                  strokeDasharray={`${attendanceRate}, 100`}
-                  className="animate-dashoffset"
+                  strokeLinecap="round"
+                  initial={{ strokeDasharray: "0, 100" }}
+                  animate={{ strokeDasharray: `${attendanceRate}, 100` }}
+                  transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
                 />
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
+          </div>
+          <div className="mt-4 h-2 w-full bg-purple-900/20 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${attendanceRate}%` }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="h-full bg-gradient-to-r from-purple-400 to-purple-500"
+            />
           </div>
         </motion.div>
       </div>
@@ -538,12 +637,22 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
           sx={{
             width: "100%",
             mb: 2,
-              backgroundColor: "#0d111c",
-              color: "white",
-              borderRadius: "0.5rem",
+            backgroundColor: "#0d111c",
+            color: "white",
+            borderRadius: "1rem",
             overflow: "hidden",
-              border: "1px solid #2a2f3e",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+            border: "1px solid #2a2f3e",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            position: "relative",
+            "&:after": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "4px",
+              background: "linear-gradient(to right, var(--primary), var(--primary-dark))",
+            }
           }}
         >
           {/* Toolbar with search and filters */}
@@ -682,14 +791,39 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
             </div>
 
           {/* Table */}
-          <div className="w-full overflow-x-auto">
-            <TableContainer sx={{ maxHeight: "60vh" }}>
+          <div className="w-full overflow-x-hidden">
+            <TableContainer 
+              sx={{ 
+                maxHeight: "calc(100vh - 300px)", 
+                minHeight: "400px",
+                overflowX: "hidden",
+                "&::-webkit-scrollbar": {
+                  width: "10px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: "#1a1f2e",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "var(--primary)",
+                  borderRadius: "5px",
+                  border: "2px solid #1a1f2e",
+                },
+                "&::-webkit-scrollbar-thumb:hover": {
+                  backgroundColor: "var(--primary-dark)",
+                },
+                scrollbarWidth: "thin",
+                scrollbarColor: "var(--primary) #1a1f2e"
+              }}
+            >
               <Table
                 stickyHeader
                 aria-labelledby="tableTitle"
                 sx={{ 
                   minWidth: { xs: 350, sm: 650 },
-                  tableLayout: "fixed"
+                  tableLayout: "fixed",
+                  "& .MuiTableCell-root": {
+                    padding: { xs: "12px 8px", sm: "14px 16px" },
+                  }
                 }}
                 size="small"
               >
@@ -705,8 +839,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         transition: "background-color 0.2s",
                         "&:hover": { backgroundColor: "#2a2f3e" },
                         py: 3,
-                        borderBottom: "1px solid #2a2f3e",
-                        width: { xs: "80px", sm: "100px" }
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "80px", sm: "100px" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
                       }}
                     >
                       <div className="flex items-center">
@@ -728,8 +863,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         transition: "background-color 0.2s",
                         "&:hover": { backgroundColor: "#2a2f3e" },
                         py: 3,
-                        borderBottom: "1px solid #2a2f3e",
-                        width: { xs: "120px", sm: "auto" }
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "120px", sm: "auto" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
                       }}
                     >
                       <div className="flex items-center">
@@ -753,8 +889,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         transition: "background-color 0.2s",
                         "&:hover": { backgroundColor: "#2a2f3e" },
                         py: 3,
-                        borderBottom: "1px solid #2a2f3e",
-                        width: { xs: "100px", sm: "150px" }
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "100px", sm: "150px" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
                       }}
                     >
                       <div className="flex items-center justify-center">
@@ -778,8 +915,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         transition: "background-color 0.2s",
                         "&:hover": { backgroundColor: "#2a2f3e" },
                         py: 3,
-                        borderBottom: "1px solid #2a2f3e",
-                        width: { xs: "100px", sm: "150px" }
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "100px", sm: "150px" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
                       }}
                     >
                       <div className="flex items-center justify-center">
@@ -798,8 +936,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         backgroundColor: "#1a1f2e",
                         color: "white",
                         py: 3,
-                        borderBottom: "1px solid #2a2f3e",
-                        width: { xs: "100px", sm: "150px" }
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "100px", sm: "150px" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
                       }}
                     >
                       Actions
@@ -807,8 +946,8 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {visibleRows.length > 0 ? (
-                    visibleRows
+                  {sortedUsers.length > 0 ? (
+                    sortedUsers
                       .filter((row) => row.student)
                       .map((row, index) => {
                         // Get the status using our helper function
@@ -829,19 +968,45 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                 backgroundColor: "#0a0e17"
                               },
                               "&:hover": {
-                                backgroundColor: "#151b29"
+                                backgroundColor: "#151b29",
+                                "& .MuiTableCell-root": {
+                                  borderLeft: {
+                                    xs: "none",
+                                    sm: "3px solid var(--primary)"
+                                  }
+                                }
                               },
-                              transition: "background-color 0.2s",
+                              transition: "all 0.2s ease",
+                              borderRadius: "8px",
+                              overflow: "hidden"
                             }}
                           >
                             <TableCell 
                               component="th" 
                               scope="row" 
-                              sx={{ color: "white", py: 2.5, borderBottom: "1px solid #2a2f3e" }}
+                              sx={{ 
+                                color: "white", 
+                                py: 2.5, 
+                                borderBottom: "1px solid #2a2f3e",
+                                borderLeft: {
+                                  xs: "none",
+                                  sm: "3px solid transparent"
+                                },
+                                transition: "all 0.2s ease"
+                              }}
                             >
                               <div className="font-medium">{row.student.studentID || row.student._id?.substring(0, 8)}</div>
                             </TableCell>
-                            <TableCell sx={{ color: "white", py: 2.5, borderBottom: "1px solid #2a2f3e" }}>
+                            <TableCell sx={{ 
+                              color: "white", 
+                              py: 2.5, 
+                              borderBottom: "1px solid #2a2f3e",
+                              borderLeft: {
+                                xs: "none",
+                                sm: "3px solid transparent"
+                              },
+                              transition: "all 0.2s ease"
+                            }}>
                               <div className="font-medium">{row.student.name}</div>
                             </TableCell>
                             <TableCell 
@@ -850,7 +1015,12 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                 color: "white",
                                 display: { xs: 'none', sm: 'table-cell' },
                                 py: 2.5,
-                                borderBottom: "1px solid #2a2f3e"
+                                borderBottom: "1px solid #2a2f3e",
+                                borderLeft: {
+                                  xs: "none",
+                                  sm: "3px solid transparent"
+                                },
+                                transition: "all 0.2s ease"
                               }}
                             >
                               <span className="bg-[#2a2f3e] text-gray-300 px-3 py-1 rounded-md text-sm">
@@ -862,7 +1032,12 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               sx={{ 
                                 display: { xs: 'none', md: 'table-cell' },
                                 py: 2.5,
-                                borderBottom: "1px solid #2a2f3e"
+                                borderBottom: "1px solid #2a2f3e",
+                                borderLeft: {
+                                  xs: "none",
+                                  sm: "3px solid transparent"
+                                },
+                                transition: "all 0.2s ease"
                               }}
                             >
                               <span 
@@ -877,80 +1052,60 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                 {status === "present" ? "Present" : status === "absent" ? "Absent" : "Not recorded"}
                               </span>
                             </TableCell>
-                            <TableCell align="center" sx={{ py: 2, borderBottom: "1px solid #2a2f3e" }}>
+                            <TableCell align="center" sx={{ 
+                              py: 2,
+                              borderBottom: "1px solid #2a2f3e",
+                              borderLeft: {
+                                xs: "none",
+                                sm: "3px solid transparent"
+                              },
+                              transition: "all 0.2s ease"
+                            }}>
                               <div className="flex gap-2 justify-center">
-                                <CustomTooltip
-                                  title={
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <FaCheckCircle style={{ color: '#fff', fontSize: 16, marginRight: 4 }} />
-                                      {status === "present" ? "Already present" : "Mark as present"}
-                                    </span>
-                                  }
-                                  disableInteractive={false}
-                                >
-                                  <span>
-                                    <Button
-                                      variant="contained"
-                                      size="small"
-                                      onClick={() => handleAddUserAttendance(row, "present")}
-                                      disabled={isLoadingAdding || status === "present"}
-                                      sx={{
-                                        minWidth: 0,
-                                        backgroundColor: "var(--success)",
-                                        borderRadius: "6px",
-                                        transition: "all 0.2s ease",
-                                        "&:hover": {
-                                          backgroundColor: "var(--success)",
-                                          transform: "translateY(-2px)",
-                                          boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
-                                        },
-                                        "&.Mui-disabled": {
-                                          backgroundColor: "rgba(255, 255, 255, 0.05)",
-                                          color: "rgba(255, 255, 255, 0.2)"
-                                        }
-                                      }}
-                                    >
-                                      <FaUserPlus />
-                                    </Button>
-                                  </span>
-                                </CustomTooltip>
+                                <div className="relative group">
+                                  <button
+                                    onClick={() => handleAddUserAttendance(row, "present")}
+                                    disabled={isLoadingAdding || status === "present"}
+                                    className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
+                                      status === "present" ? 
+                                      'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
+                                      'bg-green-600 text-white hover:shadow-lg hover:-translate-y-0.5'
+                                    }`}
+                                  >
+                                    <FaUserPlus />
+                                  </button>
+                                  
+                                  {status === "present" && (
+                                    <div className="absolute z-50 left-1/2 -translate-x-1/2 -bottom-12 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+                                      bg-green-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg border border-green-500">
+                                      <div className="absolute left-1/2 -translate-x-1/2 -top-1.5 w-3 h-3 bg-green-600 rotate-45 border-t border-l border-green-500"></div>
+                                      Already present
+                                    </div>
+                                  )}
+                                </div>
                                 
                                 {allowMarkAbsent && (
-                                  <CustomTooltipAbsent
-                                    title={
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <FaUserTimes style={{ color: '#fff', fontSize: 16, marginRight: 4 }} />
-                                        {status === "absent" ? "Already marked absent" : "Mark as absent"}
-                                      </span>
-                                    }
-                                    disableInteractive={false}
-                                  >
-                                    <span>
-                                      <Button
-                                        variant="contained"
-                                        size="small"
-                                        onClick={() => handleAddUserAttendance(row, "absent")}
-                                        disabled={isLoadingAdding || status === "absent"}
-                                        sx={{
-                                          minWidth: 0,
-                                          backgroundColor: "var(--error)",
-                                          borderRadius: "6px",
-                                          transition: "all 0.2s ease",
-                                          "&:hover": {
-                                            backgroundColor: "var(--error-dark)",
-                                            transform: "translateY(-2px)",
-                                            boxShadow: "0 4px 8px rgba(0,0,0,0.15)"
-                                          },
-                                          "&.Mui-disabled": {
-                                            backgroundColor: "rgba(255, 255, 255, 0.05)",
-                                            color: "rgba(255, 255, 255, 0.2)"
-                                          }
-                                        }}
-                                      >
-                                        <FaUserTimes />
-                                      </Button>
-                                    </span>
-                                  </CustomTooltipAbsent>
+                                  <div className="relative group">
+                                    <button
+                                      onClick={() => handleAddUserAttendance(row, "absent")}
+                                      disabled={isLoadingAdding || status === "absent"}
+                                      className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
+                                        status === "absent" ? 
+                                        'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
+                                        'bg-red-600 text-white hover:shadow-lg hover:-translate-y-0.5'
+                                      }`}
+                                    >
+                                      <FaUserTimes />
+                                    </button>
+                                    
+                                    {status === "absent" && (
+                                      <div className="absolute z-50 left-1/2 -translate-x-1/2 -bottom-12 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
+                                        bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg border border-red-500">
+                                        <div className="absolute left-1/2 -translate-x-1/2 -top-1.5 w-3 h-3 bg-red-600 rotate-45 border-t border-l border-red-500"></div>
+                                        Already marked absent
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </TableCell>
@@ -959,13 +1114,19 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                       })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 8, color: "gray", backgroundColor: "#0d111c", borderBottom: "1px solid #2a2f3e" }}>
+                      <TableCell colSpan={5} align="center" sx={{ py: 12, color: "gray", backgroundColor: "#0d111c", borderBottom: "1px solid #2a2f3e" }}>
                         <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.3 }}
+                          className="flex flex-col items-center justify-center"
                         >
-                          <Typography variant="body1" sx={{ fontWeight: "medium", mb: 1, color: "white" }}>
+                          <div className="w-16 h-16 rounded-full bg-[#1a1f2e] flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M9.5 13.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm5 0a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm-10 8a7 7 0 1114 0H4.5z" />
+                            </svg>
+                          </div>
+                          <Typography variant="body1" sx={{ fontWeight: "medium", mb: 1, color: "white", fontSize: "1.1rem" }}>
                             No students found
                           </Typography>
                           <Typography variant="body2" sx={{ opacity: 0.7, color: "gray" }}>
@@ -978,70 +1139,6 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                 </TableBody>
               </Table>
             </TableContainer>
-          </div>
-  
-          {/* Pagination - simplify on mobile */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#1a1f2e] border-t border-[#2a2f3e] flex-wrap">
-            <div className="w-full sm:flex sm:flex-1 sm:items-center sm:justify-between">
-              <div className="hidden sm:block">
-                <p className="text-sm text-gray-400">
-                  Showing <span className="font-medium text-white">{page * rowsPerPage + 1}</span> to{" "}
-                  <span className="font-medium text-white">
-                    {Math.min((page + 1) * rowsPerPage, filteredUsers.length)}
-                  </span>{" "}
-                  of <span className="font-medium text-white">{filteredUsers.length}</span> results
-                </p>
-              </div>
-              <div className="flex gap-2 items-center justify-center sm:justify-end w-full sm:w-auto mt-2 sm:mt-0">
-                <span className="text-sm text-gray-400 mr-2 hidden sm:inline">Rows per page:</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => {
-                    setRowsPerPage(parseInt(e.target.value, 10));
-                    setPage(0);
-                  }}
-                  className="bg-[#0d111c] text-white px-2 py-1 rounded border border-[#2a2f3e] text-sm"
-                >
-                  {[5, 10, 25, 50].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setPage(Math.max(0, page - 1))}
-                    disabled={page === 0}
-                    className={`p-1 rounded ${
-                      page === 0
-                        ? "text-gray-600 cursor-not-allowed"
-                        : "text-gray-400 hover:bg-[#2a2f3e] hover:text-white"
-                    }`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                  <div className="text-white px-2 py-1">
-                    {page + 1} of {Math.ceil(filteredUsers.length / rowsPerPage)}
-                  </div>
-                  <button
-                    onClick={() => setPage(Math.min(Math.ceil(filteredUsers.length / rowsPerPage) - 1, page + 1))}
-                    disabled={page >= Math.ceil(filteredUsers.length / rowsPerPage) - 1}
-                    className={`p-1 rounded ${
-                      page >= Math.ceil(filteredUsers.length / rowsPerPage) - 1
-                        ? "text-gray-600 cursor-not-allowed"
-                        : "text-gray-400 hover:bg-[#2a2f3e] hover:text-white"
-                    }`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </Paper>
         </motion.div>

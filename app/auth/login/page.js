@@ -439,17 +439,6 @@ export default function Page() {
                   </div>
                 )}
               </motion.button>
-              
-              {/* Register link */}
-              <div className="text-center mt-6">
-                <p className="text-sm text-[var(--foreground-secondary)]">
-                  {isRTL ? "ليس لديك حساب؟" : "Don't have an account?"}
-                  {" "}
-                  <Link href="/auth/register" className="text-[var(--primary)] font-medium hover:text-[var(--primary-light)]">
-                    {isRTL ? "سجل الآن" : "Sign Up"}
-                  </Link>
-                </p>
-              </div>
             </div>
           </div>
         </motion.div>
