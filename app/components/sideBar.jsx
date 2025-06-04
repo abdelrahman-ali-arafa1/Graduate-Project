@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { MdOutlineDashboard, MdPeopleAlt, MdSubject } from "react-icons/md";
-import { FaFolder, FaUserGraduate, FaTimes } from "react-icons/fa";
+import { FaFolder, FaUserGraduate, FaTimes, FaArrowUp } from "react-icons/fa";
 import { SlCalender } from "react-icons/sl";
 import { FaMessage } from "react-icons/fa6";
 import { IoLogOut } from "react-icons/io5";
@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/pages/staff" },
     { icon: <FaFolder />, label: "Documents", href: "/dashboard/pages/document" },
     { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/pages/document/studentsEdit" },
+    { icon: <FaArrowUp />, label: "My Grade", href: "/dashboard/pages/myGrade" },
     { icon: <FaMessage />, label: "Messages", href: "#" },
   ] : [
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard" },

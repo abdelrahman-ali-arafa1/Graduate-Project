@@ -406,39 +406,39 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
     const statusMessage = status === "present" ? "present" : "absent";
     
     // No confirmation dialog for any status
-    try {
-      const newAttendance = {
-        student: row.student?._id,
-        sessionID: sessionId,
-        attendanceStatus: status,
-        sessionType: lecturerRole === "instructor" ? "lecture" : "section",
-        timestamp: new Date().toISOString()
-      };
+      try {
+        const newAttendance = {
+          student: row.student?._id,
+          sessionID: sessionId,
+          attendanceStatus: status,
+          sessionType: lecturerRole === "instructor" ? "lecture" : "section",
+          timestamp: new Date().toISOString()
+        };
 
-      console.log("Sending attendance data:", newAttendance);
+        console.log("Sending attendance data:", newAttendance);
 
-      // Validate data before sending
-      if (!newAttendance.student || !newAttendance.sessionID) {
-        throw new Error("Incomplete attendance data");
-      }
+        // Validate data before sending
+        if (!newAttendance.student || !newAttendance.sessionID) {
+          throw new Error("Incomplete attendance data");
+        }
 
-      const response = await addStudentAttendance({
-        courseId: storedCourse._id || courseId,
-        newUser: newAttendance,
-      });
+        const response = await addStudentAttendance({
+          courseId: storedCourse._id || courseId,
+          newUser: newAttendance,
+        });
 
-      console.log("Attendance response:", response);
-      
+        console.log("Attendance response:", response);
+
       // No success message alert for any status
-      
-      // Refresh data 
-      if (refetch) {
-        console.log("Refetching attendance data");
-        refetch();
-      }
-    } catch (err) {
-      console.error("Failed to add attendance:", err);
-      window.alert(`Failed to record attendance: ${err.message || "Unexpected error occurred"}`);
+        
+        // Refresh data 
+        if (refetch) {
+          console.log("Refetching attendance data");
+          refetch();
+        }
+      } catch (err) {
+        console.error("Failed to add attendance:", err);
+        window.alert(`Failed to record attendance: ${err.message || "Unexpected error occurred"}`);
     }
   };
   
@@ -637,11 +637,11 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
           sx={{
             width: "100%",
             mb: 2,
-            backgroundColor: "#0d111c",
-            color: "white",
+              backgroundColor: "#0d111c",
+              color: "white",
             borderRadius: "1rem",
             overflow: "hidden",
-            border: "1px solid #2a2f3e",
+              border: "1px solid #2a2f3e",
             boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
             position: "relative",
             "&:after": {
@@ -1064,15 +1064,15 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               <div className="flex gap-2 justify-center">
                                 <div className="relative group">
                                   <button
-                                    onClick={() => handleAddUserAttendance(row, "present")}
-                                    disabled={isLoadingAdding || status === "present"}
+                                      onClick={() => handleAddUserAttendance(row, "present")}
+                                      disabled={isLoadingAdding || status === "present"}
                                     className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
                                       status === "present" ? 
                                       'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
                                       'bg-green-600 text-white hover:shadow-lg hover:-translate-y-0.5'
                                     }`}
-                                  >
-                                    <FaUserPlus />
+                                    >
+                                      <FaUserPlus />
                                   </button>
                                   
                                   {status === "present" && (
@@ -1087,15 +1087,15 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                 {allowMarkAbsent && (
                                   <div className="relative group">
                                     <button
-                                      onClick={() => handleAddUserAttendance(row, "absent")}
-                                      disabled={isLoadingAdding || status === "absent"}
+                                        onClick={() => handleAddUserAttendance(row, "absent")}
+                                        disabled={isLoadingAdding || status === "absent"}
                                       className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
                                         status === "absent" ? 
                                         'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
                                         'bg-red-600 text-white hover:shadow-lg hover:-translate-y-0.5'
                                       }`}
-                                    >
-                                      <FaUserTimes />
+                                      >
+                                        <FaUserTimes />
                                     </button>
                                     
                                     {status === "absent" && (

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaFilter, FaSave, FaEdit, FaUserGraduate, FaCheckCircle, FaTimesCircle, FaEnvelope, FaBuilding, FaGraduationCap, FaTrash, FaEye } from "react-icons/fa";
+import { FaFilter, FaSave, FaEdit, FaUserGraduate, FaCheckCircle, FaTimesCircle, FaEnvelope, FaBuilding, FaGraduationCap, FaTrash, FaEye, FaPlus, FaBook, FaSearch, FaTimes } from "react-icons/fa";
 import Link from 'next/link';
 import Image from 'next/image';
 import { FaFileUpload } from 'react-icons/fa';
@@ -22,6 +22,25 @@ const StudentsEditPage = () => {
   const [isTableHovered, setIsTableHovered] = useState(false);
   const tableContainerRef = useRef(null);
   const scrollTimerRef = useRef(null);
+  const [showStudentDetails, setShowStudentDetails] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  
+  // Search and advanced filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterByCourse, setFilterByCourse] = useState("");
+  
+  // Add/Remove Course States
+  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [addCourseLoading, setAddCourseLoading] = useState(false);
+  const [addCourseError, setAddCourseError] = useState("");
+  const [addCourseSuccess, setAddCourseSuccess] = useState("");
+  const [deleteCourseId, setDeleteCourseId] = useState(null);
+  const [deleteCourseLoading, setDeleteCourseLoading] = useState(false);
+  const [deleteCourseError, setDeleteCourseError] = useState("");
 
   // Fetch all students from API
   useEffect(() => {
@@ -47,6 +66,51 @@ const StudentsEditPage = () => {
       .finally(() => setLoading(false));
   }, [selectedLevel, selectedDepartment]);
 
+  // Apply search and advanced filters
+  useEffect(() => {
+    if (!selectedLevel || !selectedDepartment || students.length === 0) {
+      return;
+    }
+    
+    // Start with basic level and department filter
+    let filtered = students.filter(
+      (s) =>
+        (s.level?.toString() === selectedLevel) &&
+        (s.department?.toUpperCase() === selectedDepartment)
+    );
+    
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(
+        (student) =>
+          student.name?.toLowerCase().includes(query) ||
+          student.email?.toLowerCase().includes(query) ||
+          student._id?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply course filter if selected
+    if (filterByCourse) {
+      filtered = filtered.filter(
+        (student) =>
+          student.courses?.some((course) => course._id === filterByCourse)
+      );
+    }
+    
+    setFilteredStudents(filtered);
+  }, [students, selectedLevel, selectedDepartment, searchQuery, filterByCourse]);
+
+  // Fetch all courses once on mount
+  useEffect(() => {
+    setCoursesLoading(true);
+    fetch("https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/courses")
+      .then(res => res.json())
+      .then(data => setCourses(data.data || []))
+      .catch(() => setCourses([]))
+      .finally(() => setCoursesLoading(false));
+  }, []);
+
   // Start editing a student
   const handleEdit = (idx) => {
     setEditIndex(idx);
@@ -54,9 +118,30 @@ const StudentsEditPage = () => {
     setStatus("");
   };
 
+  // View student details and courses
+  const handleViewDetails = (student) => {
+    setSelectedStudent(student);
+    setShowStudentDetails(true);
+  };
+
   // Handle input change
   const handleChange = (e) => {
     setEditData({ ...editData, [e.target.name]: e.target.value });
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFilterByCourse("");
+  };
+  
+  // Toggle advanced filters
+  const toggleAdvancedFilters = () => {
+    setShowAdvancedFilters(!showAdvancedFilters);
+    if (!showAdvancedFilters) {
+      // Reset advanced filters when showing
+      setFilterByCourse("");
+    }
   };
 
   // Save changes
@@ -101,6 +186,115 @@ const StudentsEditPage = () => {
     setSaving(false);
   };
 
+  // Add course to student
+  const handleAddCourse = async () => {
+    if (!selectedCourseId || !selectedStudent) return;
+    setAddCourseLoading(true);
+    setAddCourseError("");
+    setAddCourseSuccess("");
+    try {
+      const token = localStorage.getItem("token")?.replace(/"/g, "");
+      const res = await fetch("https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/addCourse", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          studentId: selectedStudent._id, 
+          courseId: selectedCourseId 
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAddCourseSuccess("Course added successfully!");
+        setShowAddCourseModal(false);
+        
+        // Update the student object in the state
+        const updatedStudent = {
+          ...selectedStudent,
+          courses: [...(selectedStudent.courses || []), { _id: selectedCourseId }]
+        };
+        setSelectedStudent(updatedStudent);
+        
+        // Update in the filteredStudents array
+        const studentIndex = filteredStudents.findIndex(s => s._id === selectedStudent._id);
+        if (studentIndex !== -1) {
+          const updatedStudents = [...filteredStudents];
+          updatedStudents[studentIndex] = updatedStudent;
+          setFilteredStudents(updatedStudents);
+        }
+        
+        // Update in the all students array
+        const allStudentIndex = students.findIndex(s => s._id === selectedStudent._id);
+        if (allStudentIndex !== -1) {
+          const updatedAllStudents = [...students];
+          updatedAllStudents[allStudentIndex] = updatedStudent;
+          setStudents(updatedAllStudents);
+        }
+      } else {
+        setAddCourseError(data.message || "Failed to add course");
+      }
+    } catch (err) {
+      setAddCourseError("Network error");
+    } finally {
+      setAddCourseLoading(false);
+    }
+  };
+
+  // Remove course from student
+  const handleRemoveCourse = async () => {
+    if (!deleteCourseId || !selectedStudent) return;
+    setDeleteCourseLoading(true);
+    setDeleteCourseError("");
+    try {
+      const token = localStorage.getItem("token")?.replace(/"/g, "");
+      const res = await fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/removeCourse/${deleteCourseId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          studentId: selectedStudent._id 
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Update the student object in the state
+        const updatedStudent = {
+          ...selectedStudent,
+          courses: (selectedStudent.courses || []).filter(course => course._id !== deleteCourseId)
+        };
+        setSelectedStudent(updatedStudent);
+        
+        // Update in the filteredStudents array
+        const studentIndex = filteredStudents.findIndex(s => s._id === selectedStudent._id);
+        if (studentIndex !== -1) {
+          const updatedStudents = [...filteredStudents];
+          updatedStudents[studentIndex] = updatedStudent;
+          setFilteredStudents(updatedStudents);
+        }
+        
+        // Update in the all students array
+        const allStudentIndex = students.findIndex(s => s._id === selectedStudent._id);
+        if (allStudentIndex !== -1) {
+          const updatedAllStudents = [...students];
+          updatedAllStudents[allStudentIndex] = updatedStudent;
+          setStudents(updatedAllStudents);
+        }
+        
+        setDeleteCourseId(null);
+      } else {
+        setDeleteCourseError(data.message || "Failed to remove course");
+      }
+    } catch (err) {
+      setDeleteCourseError("Network error");
+    } finally {
+      setDeleteCourseLoading(false);
+    }
+  };
+
   // Optional: Handle scroll to show/hide scrollbar hint - Keep if needed for overlay
   const handleScroll = () => {
     // This function can be kept if the subtle gradient overlay is desired during scroll
@@ -133,6 +327,8 @@ const StudentsEditPage = () => {
         if (res.ok) {
           // Remove the deleted student from the filteredStudents state
           setFilteredStudents(filteredStudents.filter(student => student._id !== studentId));
+          // Also remove from the all students array
+          setStudents(students.filter(student => student._id !== studentId));
           setStatus("Student deleted successfully!");
         } else {
           let errorMsg = "Failed to delete student.";
@@ -170,6 +366,7 @@ const StudentsEditPage = () => {
           <p className="text-gray-400">View and edit student information by level and department</p>
         </div>
       </motion.div>
+      
       {/* Filters Card */}
       <motion.div
         className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-900/40 via-purple-900/40 to-indigo-900/40 p-6 border border-blue-800/30 shadow-xl"
@@ -218,15 +415,116 @@ const StudentsEditPage = () => {
           transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
         />
       </motion.div>
+      
+      {/* Search and Advanced Filter */}
+      {(selectedLevel && selectedDepartment) && (
+        <motion.div
+          className="mt-8 bg-[#232738] rounded-xl p-4 sm:p-5 shadow-md border border-[#2a2f3e]"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Box */}
+            <div className="relative flex-grow">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                placeholder="Search by name, email or ID..."
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
+            
+            {/* Advanced Filter Toggle */}
+            <button
+              onClick={toggleAdvancedFilters}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                showAdvancedFilters 
+                  ? "bg-blue-600 text-white" 
+                  : "bg-[#1a1f2e] text-gray-300 hover:bg-[#1a1f2e]/80"
+              }`}
+            >
+              <FaFilter />
+              <span>Advanced Filters</span>
+            </button>
+            
+            {/* Clear Filters */}
+            {(searchQuery || filterByCourse) && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-2 px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"
+              >
+                <FaTimes />
+                <span>Clear Filters</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Advanced Filter Panel */}
+          <AnimatePresence>
+            {showAdvancedFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 mt-4 border-t border-[#2a2f3e] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* Filter by Course */}
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-300">
+                      Filter by Course
+                    </label>
+                    <select
+                      value={filterByCourse}
+                      onChange={(e) => setFilterByCourse(e.target.value)}
+                      className="w-full p-2 bg-[#1a1f2e] border border-[#2a2f3e] rounded-lg text-white"
+                    >
+                      <option value="">All Courses</option>
+                      {courses.map(course => (
+                        <option key={course._id} value={course._id}>
+                          {course.courseName} ({course.courseCode || 'No Code'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Add more filters here as needed */}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+      
       {/* Student Count */}
       <motion.div
-        className="mt-8 mb-4 text-gray-400 text-sm"
+        className="mt-8 mb-4 text-gray-400 text-sm flex justify-between items-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
-        Showing {filteredStudents.length} students
+        <span>Showing {filteredStudents.length} students</span>
+        {searchQuery && (
+          <span className="text-blue-400">
+            Search results for: "{searchQuery}"
+          </span>
+        )}
       </motion.div>
+
       {/* Students Table Card */}
       <motion.div
         className="bg-[#232738] rounded-xl p-6 shadow-md border border-[#2a2f3e] overflow-x-auto relative"
@@ -297,7 +595,12 @@ const StudentsEditPage = () => {
                 </tr>
               ) : filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-500 py-8">No students found for selected filter.</td>
+                  <td colSpan={5} className="text-center text-gray-500 py-8">
+                    {searchQuery ? 
+                      `No students found matching "${searchQuery}"` : 
+                      "No students found for selected filter."
+                    }
+                  </td>
                 </tr>
               ) : (
                 <AnimatePresence>
@@ -358,9 +661,17 @@ const StudentsEditPage = () => {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.97 }}
                             >
-                              <FaEye className="text-blue-300 text-base"/>
+                              <FaEdit className="text-blue-300 text-base"/>
                             </motion.button>
                           )}
+                          <motion.button
+                            className="flex items-center justify-center w-8 h-8 bg-purple-900/30 text-purple-300 hover:bg-purple-800/50 border border-purple-800/30 rounded-md transition-colors text-sm"
+                            onClick={() => handleViewDetails(student)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.97 }}
+                          >
+                            <FaEye className="text-purple-300 text-base"/>
+                          </motion.button>
                           <motion.button
                             onClick={() => handleDelete(student._id)}
                             className="flex items-center justify-center w-8 h-8 bg-red-500/30 text-red-400 hover:bg-red-500/50 border border-red-500/30 rounded-md transition-colors text-sm"
@@ -388,6 +699,202 @@ const StudentsEditPage = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Student Details Modal */}
+      {showStudentDetails && selectedStudent && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div 
+            className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-4xl relative max-h-[90vh] overflow-y-auto"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20 }}
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-400 text-xl"
+              onClick={() => setShowStudentDetails(false)}
+            >
+              &times;
+            </button>
+            
+            <div className="flex flex-col md:flex-row gap-6 mb-8">
+              <div className="flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/40 to-purple-500/40 flex items-center justify-center shadow-lg border-4 border-blue-800/30">
+                  <span className="text-blue-300 font-bold text-4xl">{selectedStudent.name?.charAt(0).toUpperCase() || '?'}</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-white mb-2">{selectedStudent.name}</h2>
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <span className="px-3 py-1 rounded-full bg-blue-900/20 text-blue-400 text-sm flex items-center">
+                    <FaEnvelope className="mr-2" /> {selectedStudent.email || 'N/A'}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-indigo-900/20 text-indigo-400 text-sm flex items-center">
+                    <FaGraduationCap className="mr-2" /> Level: {selectedStudent.level || 'N/A'}
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-green-900/20 text-green-400 text-sm flex items-center">
+                    <FaBuilding className="mr-2" /> {selectedStudent.department || 'N/A'}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  Student ID: <span className="text-gray-300">{selectedStudent._id}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Courses Section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <FaBook className="mr-3 text-yellow-400" /> Enrolled Courses
+                </h3>
+                <button
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all shadow-md"
+                  onClick={() => setShowAddCourseModal(true)}
+                >
+                  <FaPlus /> Add Course
+                </button>
+              </div>
+              
+              {selectedStudent.courses && selectedStudent.courses.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {selectedStudent.courses.map((course, index) => {
+                    // Find course details from the courses list
+                    const courseDetails = courses.find(c => c._id === course._id) || course;
+                    return (
+                      <motion.div 
+                        key={course._id || index}
+                        className="bg-[#1a1f2e] p-4 rounded-xl border border-[#2a2f3e] transition-colors shadow-md group cursor-pointer relative overflow-hidden"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <FaBook className="text-yellow-400" />
+                            <span className="text-sm text-blue-300 font-medium">Course {index + 1}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">{(course._id || '').substring(0, 8)}...</span>
+                        </div>
+                        <h4 className="text-gray-200 font-medium truncate" title={courseDetails.courseName}>
+                          {courseDetails.courseName || 'Unknown Course'}
+                        </h4>
+                        {courseDetails.courseCode && (
+                          <p className="text-sm text-gray-400 mt-1">{courseDetails.courseCode}</p>
+                        )}
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            className="text-red-500 hover:text-red-700 bg-transparent border-none outline-none"
+                            title="Remove Course"
+                            onClick={() => setDeleteCourseId(course._id)}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-[#1a1f2e]/50 p-6 rounded-lg text-center text-gray-400">
+                  <FaBook className="mx-auto text-3xl text-gray-500 mb-3 opacity-50" />
+                  <p>No courses enrolled for this student</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Add Course Modal */}
+      {showAddCourseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl"
+              onClick={() => setShowAddCourseModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg font-bold text-white mb-4">Add Course to Student</h2>
+            <select
+              className="w-full p-2 rounded-lg bg-[#1a1f2e] text-white mb-4 border border-[#2a2f3e]"
+              value={selectedCourseId}
+              onChange={e => setSelectedCourseId(e.target.value)}
+            >
+              <option value="">Select a course</option>
+              {courses
+                .filter(course => !selectedStudent.courses?.some(c => c._id === course._id))
+                .map(course => (
+                  <option key={course._id} value={course._id}>
+                    {course.courseName} - {course.courseCode || 'No Code'} ({course.department || 'N/A'})
+                  </option>
+                ))}
+            </select>
+            {addCourseError && <div className="text-red-400 mb-2">{addCourseError}</div>}
+            {addCourseSuccess && <div className="text-green-400 mb-2">{addCourseSuccess}</div>}
+            <button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mt-2 disabled:opacity-50"
+              onClick={handleAddCourse}
+              disabled={addCourseLoading || !selectedCourseId}
+            >
+              {addCourseLoading ? "Adding..." : "Add Course"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Course Confirmation Modal */}
+      {deleteCourseId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-[#232738] p-8 rounded-xl shadow-lg w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xl"
+              onClick={() => setDeleteCourseId(null)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg font-bold text-white mb-4">Confirm Remove Course</h2>
+            <div className="text-gray-300 mb-6">
+              Are you sure you want to remove
+              <span className="text-red-400 font-bold mx-1">"{(courses.find(c => c._id === deleteCourseId)?.courseName) || "this course"}"</span>
+              from the student's enrolled courses?
+            </div>
+            {deleteCourseError && <div className="text-red-400 mb-2">{deleteCourseError}</div>}
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 bg-gray-700/50 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                onClick={() => setDeleteCourseId(null)}
+                disabled={deleteCourseLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                onClick={handleRemoveCourse}
+                disabled={deleteCourseLoading}
+              >
+                {deleteCourseLoading ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin inline-block"></span>
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <FaTrash className="mr-2" /> Remove
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -353,9 +353,9 @@ const Page = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="bg-[var(--background-secondary)] px-3 py-1 rounded-full text-sm flex items-center">
-              <FaUserGraduate className="mr-2 text-[var(--primary)]" />
-              <span>{filteredStudents.length} Students</span>
+          <div className="bg-[var(--background-secondary)] px-3 py-1 rounded-full text-sm flex items-center">
+            <FaUserGraduate className="mr-2 text-[var(--primary)]" />
+            <span>{filteredStudents.length} Students</span>
             </div>
           </div>
         </div>
