@@ -16,7 +16,6 @@ const StudentsEditPage = () => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editData, setEditData] = useState({});
-  const [originalEditData, setOriginalEditData] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
@@ -52,7 +51,6 @@ const StudentsEditPage = () => {
   const handleEdit = (idx) => {
     setEditIndex(idx);
     setEditData(filteredStudents[idx]);
-    setOriginalEditData(filteredStudents[idx]);
     setStatus("");
   };
 
@@ -67,26 +65,6 @@ const StudentsEditPage = () => {
     setStatus("");
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token")?.replace(/"/g, "") : "";
-
-      // Build updateData object with only changed fields
-      const updateData = {};
-
-      if (editData.name !== originalEditData.name && editData.name.trim() !== '') {
-        updateData.name = editData.name;
-      }
-
-      if (editData.email !== originalEditData.email && editData.email.trim() !== '') {
-        updateData.email = editData.email;
-      }
-
-      // If no changes, do not send request
-      if (Object.keys(updateData).length === 0) {
-        setStatus("No changes detected.");
-        setSaving(false);
-        setEditIndex(null); // Exit edit mode
-        return;
-      }
-
       const res = await fetch(
         `https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/${studentId}`,
         {
@@ -95,37 +73,30 @@ const StudentsEditPage = () => {
             "Content-Type": "application/json",
             ...(token && { "Authorization": `Bearer ${token}` })
           },
-          body: JSON.stringify(updateData), // Send only changed data
+          body: JSON.stringify({
+            name: editData.name,
+            email: editData.email
+          }),
         }
       );
-
       if (res.ok) {
         setStatus("Saved successfully!");
-        // Update local data with only the changes that were sent
-        const updated = filteredStudents.map(student =>
-            student._id === studentId ? { ...student, ...updateData } : student
-        );
+        // Update local data
+        const updated = [...filteredStudents];
+        updated[editIndex] = { ...editData };
         setFilteredStudents(updated);
-        setEditIndex(null); // Exit edit mode
+        setEditIndex(null);
       } else {
-        let errorMsg = "Failed to save. Please try again.";
+        let errorMsg = "Failed to save. Try again.";
         try {
           const errorData = await res.json();
-          // Improved error message display
-          if (errorData && errorData.errors && errorData.errors.length > 0) {
-              errorMsg = errorData.errors[0].msg || errorMsg;
-          } else if (errorData && errorData.message) {
-              errorMsg = errorData.message;
-          }
-        } catch (e) {
-            console.error("Failed to parse error response:", e);
-        }
-        setStatus(`Save error: ${errorMsg}`); // Display specific error
-        console.error("PUT error:", errorMsg);
+          if (errorData && errorData.message) errorMsg = errorData.message;
+        } catch {}
+        setStatus(errorMsg);
+        console.error("PATCH error:", errorMsg);
       }
-    } catch (error) {
-      setStatus(`An unexpected error occurred: ${error.message}`);
-      console.error("PUT fetch error:", error);
+    } catch {
+      setStatus("Failed to save. Try again.");
     }
     setSaving(false);
   };

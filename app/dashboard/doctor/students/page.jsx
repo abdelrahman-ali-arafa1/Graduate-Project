@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { useGetAllAttendancesQuery } from "@/app/Redux/features/attendanceApiSlice";
+// import { useGetAllAttendancesQuery } from "@/app/Redux/features/attendanceApiSlice"; // Old hook
+import { useGetStudentsByDateQuery } from "@/app/Redux/features/attendanceApiSlice"; // New hook for students
+import { useGetCourseSessionsQuery } from "@/app/Redux/features/sessionApiSlice"; // Hook for sessions
 import { motion } from "framer-motion";
 import {
   FaSearch,
@@ -10,7 +12,18 @@ import {
   FaSort,
   FaUserGraduate,
   FaBookOpen,
+  FaCalendarAlt,
 } from "react-icons/fa";
+
+// Helper function to format date to DD/MM/YYYY
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 const Page = () => {
   const router = useRouter();
@@ -19,44 +32,92 @@ const Page = () => {
   const [filterDepartment, setFilterDepartment] = useState("");
   const [sortBy, setSortBy] = useState("name"); // name, department, attendance
   const [sortOrder, setSortOrder] = useState("asc"); // asc, desc
+  const [selectedDate, setSelectedDate] = useState(null); // New state for selected date
+  const [formattedSessionDates, setFormattedSessionDates] = useState([]); // New state for formatted dates
 
-  // استخدام الـ hook للحصول على بيانات الطلاب
+  // Handle date selection
+  const handleDateChange = (event) => {
+    const date = event.target.value;
+    setSelectedDate(date === "" ? null : date); // Set to null if "All Dates" is selected
+  };
+
+  // Fetch sessions for the selected course
   const {
-    data: attendanceData,
-    isLoading,
-    error,
-    refetch,
-  } = useGetAllAttendancesQuery(selectedCourse?._id || "", {
-    skip: !selectedCourse,
+    data: sessionsData,
+    isLoading: isLoadingSessions,
+    error: sessionsError,
+  } = useGetCourseSessionsQuery(selectedCourse?._id || "", {
+    skip: !selectedCourse?._id,
   });
 
-  // تأكد من تحميل البيانات عند تغيير المقرر المحدد
-  useEffect(() => {
-    if (selectedCourse) {
-      refetch();
+  // Fetch student data based on selected date or all students
+  const {
+    data: studentsData,
+    isLoading: isLoadingStudents,
+    error: studentsError,
+    refetch: refetchStudents,
+  } = useGetStudentsByDateQuery(
+    { courseId: selectedCourse?._id || "", date: selectedDate ? formatDate(selectedDate) : null },
+    {
+      skip: !selectedCourse?._id, // Skip if courseId is not available
     }
-  }, [selectedCourse, refetch]);
+  );
+
+  // Combine loading and error states and define attendanceData immediately after hooks
+  const isLoading = isLoadingSessions || isLoadingStudents;
+  const error = sessionsError || studentsError;
+  const attendanceData = studentsData; // Use studentsData from the new hook
+
+  // Effect to process session data and format unique dates on the client
+  useEffect(() => {
+    if (sessionsData && Array.isArray(sessionsData)) {
+      const uniqueDates = Array.from(new Set(sessionsData.map(session => new Date(session.createdAt).toDateString()))); // Get unique dates as strings
+      
+      const dates = uniqueDates
+        .map(dateString => ({ // Map unique date strings to objects
+            date: new Date(dateString), // Create Date object for sorting
+            originalDate: new Date(dateString).toISOString(), // Store original date as ISO string for consistent value
+            formattedDate: formatDate(dateString) // Format for display
+        }))
+        .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort by timestamp descending (latest first)
+        .slice(0, 10); // Take latest 10 unique dates
+        
+      setFormattedSessionDates(dates);
+    } else {
+      setFormattedSessionDates([]);
+    }
+  }, [sessionsData]); // Rerun when sessionsData changes
 
   // تحويل البيانات للعرض وتطبيق البحث والتصفية والترتيب
   const getFilteredAndSortedStudents = () => {
-    if (!attendanceData || !attendanceData.students) return [];
+    // Use attendanceData (which is studentsData) from the new hook
+    if (!attendanceData || !Array.isArray(attendanceData)) return [];
 
-    let filteredStudents = [...attendanceData.students];
+    let filteredStudents = [...attendanceData];
+
+    // The structure of items in filteredStudents is now the student object itself
+    // if a date is selected, or the { student, studentAttendanc } object if no date
 
     // تطبيق البحث
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filteredStudents = filteredStudents.filter(
-        (item) =>
-          item.student.name.toLowerCase().includes(term) ||
-          item.student.email.toLowerCase().includes(term)
+        (item) => {
+            const student = selectedDate ? item : item.student; // Get the actual student object
+            // Ensure student and its properties exist before accessing
+            return student && (student.name?.toLowerCase().includes(term) || student.email?.toLowerCase().includes(term));
+        }
       );
     }
 
     // تطبيق التصفية حسب القسم
     if (filterDepartment) {
       filteredStudents = filteredStudents.filter(
-        (item) => item.student.department === filterDepartment
+        (item) => {
+            const student = selectedDate ? item : item.student; // Get the actual student object
+             // Ensure student and department exist before accessing
+            return student && student.department === filterDepartment;
+        }
       );
     }
 
@@ -64,22 +125,32 @@ const Page = () => {
     filteredStudents.sort((a, b) => {
       let valueA, valueB;
 
+      // Adjust sorting based on whether a date is selected and access properties safely
+      const studentA = selectedDate ? a : a?.student;
+      const studentB = selectedDate ? b : b?.student;
+
+      // Ensure student objects exist before accessing properties
+      if (!studentA || !studentB) return 0;
+
       switch (sortBy) {
         case "name":
-          valueA = a.student.name.toLowerCase();
-          valueB = b.student.name.toLowerCase();
+          valueA = studentA.name?.toLowerCase() || '';
+          valueB = studentB.name?.toLowerCase() || '';
           break;
         case "department":
-          valueA = a.student.department.toLowerCase();
-          valueB = b.student.department.toLowerCase();
+          valueA = studentA.department?.toLowerCase() || '';
+          valueB = studentB.department?.toLowerCase() || '';
           break;
         case "attendance":
-          valueA = a.studentAttendanc;
-          valueB = b.studentAttendanc;
+          // Only sort by attendance if no date is selected
+          if (selectedDate) return 0;
+          // Access studentAttendanc safely
+          valueA = a?.studentAttendanc || 0;
+          valueB = b?.studentAttendanc || 0;
           break;
         default:
-          valueA = a.student.name.toLowerCase();
-          valueB = b.student.name.toLowerCase();
+          valueA = studentA.name?.toLowerCase() || '';
+          valueB = studentB.name?.toLowerCase() || '';
       }
 
       if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
@@ -92,11 +163,14 @@ const Page = () => {
 
   // استخراج قائمة الأقسام المتاحة للتصفية
   const getDepartments = () => {
-    if (!attendanceData || !attendanceData.students) return [];
+    // Use attendanceData (which is studentsData) from the new hook for departments
+    if (!attendanceData || !Array.isArray(attendanceData)) return [];
     const departments = new Set();
-    attendanceData.students.forEach((item) => {
-      if (item.student.department) {
-        departments.add(item.student.department);
+    attendanceData.forEach((item) => {
+      const student = selectedDate ? item : item.student; // Get the actual student object
+       // Ensure student exists before accessing department
+      if (student?.department) {
+        departments.add(student.department);
       }
     });
     return Array.from(departments);
@@ -176,7 +250,7 @@ const Page = () => {
           <h2 className="text-xl font-medium mb-2">Error Loading Student Data</h2>
           <p>{error.message || "Failed to load student data. Please try again."}</p>
           <button
-            onClick={refetch}
+            onClick={refetchStudents}
             className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
           >
             Retry
@@ -276,6 +350,30 @@ const Page = () => {
             </select>
           </div>
 
+          {/* تصفية حسب التاريخ */}
+          {formattedSessionDates.length > 0 && (
+            <div className="relative md:w-1/4">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <FaCalendarAlt className="text-[var(--foreground-secondary)] text-sm" />
+              </div>
+              <select
+                value={selectedDate || ""} // Use empty string for "All Dates" option
+                onChange={handleDateChange}
+                className="w-full pl-10 pr-4 py-2 rounded-md bg-[var(--background-secondary)] text-[var(--foreground)] border border-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent text-sm appearance-none"
+              >
+                <option value="">All Dates</option>
+                {formattedSessionDates.map(session => (
+                    <option key={session.originalDate} value={session.originalDate}>
+                      {session.formattedDate}
+                    </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--foreground-secondary)]">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
+            </div>
+          )}
+
           {/* ترتيب */}
           <div className="md:w-1/4 relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -327,12 +425,15 @@ const Page = () => {
                       )}
                     </div>
                   </th>
-                  <th
-                    scope="col"
-                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider hidden md:table-cell"
-                  >
-                    Email
-                  </th>
+                  {/* Hide Email column when filtering by date */}
+                  {!selectedDate && (
+                    <th
+                      scope="col"
+                      className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider hidden md:table-cell"
+                    >
+                      Email
+                    </th>
+                  )}
                   <th
                     scope="col"
                     className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer hidden sm:table-cell"
@@ -347,14 +448,26 @@ const Page = () => {
                       )}
                     </div>
                   </th>
+                   <th
+                    scope="col"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider hidden sm:table-cell"
+                  >
+                    Level
+                  </th>
+                   <th
+                    scope="col"
+                    className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider"
+                  >
+                    Course
+                  </th>
                   <th
                     scope="col"
                     className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-xs font-medium text-[var(--foreground-secondary)] uppercase tracking-wider cursor-pointer"
-                    onClick={() => changeSortBy("attendance")}
+                     onClick={() => !selectedDate && changeSortBy("attendance")} // Only allow sorting by attendance if no date is selected
                   >
                     <div className="flex items-center">
-                      <span>Att.</span>
-                      {sortBy === "attendance" && (
+                      <span>{selectedDate ? "Status" : "Att."}</span>
+                       {sortBy === "attendance" && !selectedDate && (
                         <span className="ml-1 sm:ml-2">
                           {sortOrder === "asc" ? "↑" : "↓"}
                         </span>
@@ -364,40 +477,52 @@ const Page = () => {
                 </tr>
               </thead>
               <tbody className="bg-[var(--secondary)] divide-y divide-[var(--border-color)]">
-                {filteredStudents.map((item) => (
-                  <motion.tr
-                    key={item.student._id}
-                    className="hover:bg-[var(--background-secondary)] transition-colors"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-[var(--foreground)]">
-                      <div className="flex flex-col sm:hidden">
-                        <span>{item.student.name}</span>
-                        <span className="text-xs text-[var(--foreground-secondary)] mt-0.5">{item.student.department}</span>
-                      </div>
-                      <span className="hidden sm:block">{item.student.name}</span>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden md:table-cell">
-                      {item.student.email}
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden sm:table-cell">
-                      <span className="px-1.5 sm:px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--background-secondary)] text-[var(--foreground)]">
-                        {item.student.department}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)]">
-                      <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        item.studentAttendanc > 0
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {item.studentAttendanc}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
+                {filteredStudents.map((item) => {
+                   // Consistently get the student object
+                   const student = selectedDate ? item : item.student;
+
+                   // Determine attendance info based on whether a date is selected
+                   // For date filtered, assume presence if in the list
+                   const attendanceInfo = selectedDate ? "Present" : item.studentAttendanc;
+
+                   return (
+                     <motion.tr
+                       key={student?._id} // Use student._id for consistent key
+                       className="hover:bg-[var(--background-secondary)] transition-colors"
+                       initial={{ opacity: 0, y: 5 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ duration: 0.3 }}
+                     >
+                       <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-[var(--foreground)]">
+                         <div className="flex flex-col sm:hidden">
+                           <span>{student?.name}</span>
+                           <span className="text-xs text-[var(--foreground-secondary)] mt-0.5">{student?.department}</span>
+                         </div>
+                         <span className="hidden sm:block">{student?.name}</span>
+                       </td>
+                        {/* Hide Email cell when filtering by date */}
+                       {!selectedDate && (
+                          <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden md:table-cell">
+                            {student?.email}
+                          </td>
+                       )}
+                       <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden sm:table-cell">
+                         <span className="px-1.5 sm:px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--background-secondary)] text-[var(--foreground)]">
+                           {student?.department}
+                         </span>
+                       </td>
+                        <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)] hidden sm:table-cell">
+                          {student?.level}
+                        </td>
+                         <td className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm text-[var(--foreground-secondary)]">
+                          {selectedCourse?.courseName}
+                        </td>
+                       <td className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap text-xs sm:text-sm ${selectedDate ? (attendanceInfo === 'Present' ? 'text-green-500' : 'text-red-500') : 'text-[var(--foreground)]'}`}>
+                         {attendanceInfo}
+                       </td>
+                     </motion.tr>
+                   );
+                })}
               </tbody>
             </table>
           </div>

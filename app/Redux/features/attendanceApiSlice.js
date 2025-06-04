@@ -43,6 +43,43 @@ export const attendanceApiSlice = createApi({
       },
     }),
 
+    getStudentsByDate: builder.query({
+      query: ({ courseId, date }) => {
+        if (!courseId) {
+          throw new Error("Course ID is required");
+        }
+        const body = date ? { date } : {}; // Include date in body if provided
+        return {
+          url: `/showStudent/${courseId}`,
+          method: "POST",
+          body: body,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        };
+      },
+      providesTags: ["Attendance"],
+      transformResponse: (response, meta, arg) => {
+        // Determine which array to return based on whether a date was sent
+        if (arg.date) {
+           // If a date was sent, return the presntsINDate array
+           return response && response.presntsINDate ? response.presntsINDate : [];
+        } else {
+           // If no date was sent, return the students array
+           return response && response.students ? response.students : [];
+        }
+      },
+      transformErrorResponse: (response) => {
+        if (response.status) {
+          return {
+            status: response.status,
+            message: response.data?.message || 'Failed to fetch student data'
+          };
+        }
+        return { status: 'NETWORK_ERROR', message: 'Failed to connect to server' };
+      },
+    }),
+
     getAttendanceStats: builder.query({
       query: () => {
         return `/stats`;
@@ -238,5 +275,6 @@ export const {
   useGetAttendanceStatsQuery,
   useGetInstructorStatsQuery,
   useAddStudentAttendanceMutation, 
-  useAddStudentsSheetMutation 
+  useAddStudentsSheetMutation,
+  useGetStudentsByDateQuery
 } = attendanceApiSlice;

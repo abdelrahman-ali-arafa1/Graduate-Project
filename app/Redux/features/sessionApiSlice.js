@@ -66,8 +66,32 @@ export const sessionApiSlice = createApi({
       },
       invalidatesTags: ["Session"],
     }),
+
+    // New endpoint to get all sessions for a course
+    getCourseSessions: builder.query({
+      query: (courseId) => {
+        if (!courseId) {
+          throw new Error("Course ID is required");
+        }
+        return `/sessionsCourse/${courseId}`;
+      },
+      providesTags: ["Session"],
+      transformResponse: (response) => {
+        // Assuming the response is an object with a 'data' array
+        return response && Array.isArray(response.data) ? response.data : [];
+      },
+      transformErrorResponse: (response) => {
+        if (response.status) {
+          return {
+            status: response.status,
+            message: response.data?.message || 'Failed to fetch course sessions'
+          };
+        }
+        return { status: 'NETWORK_ERROR', message: 'Failed to connect to server' };
+      },
+    }),
   }),
 });
 
-export const { useCreateSessionMutation, useGetQrCodeMutation, useEndSessionMutation } =
+export const { useCreateSessionMutation, useGetQrCodeMutation, useEndSessionMutation, useGetCourseSessionsQuery } =
   sessionApiSlice;
