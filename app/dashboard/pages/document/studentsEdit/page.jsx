@@ -160,8 +160,8 @@ const StudentsEditPage = () => {
           },
           body: JSON.stringify({
             name: editData.name,
-            // Only include email if it has changed
-            ...(editData.email !== filteredStudents[editIndex].email && { email: editData.email })
+            ...(editData.email !== filteredStudents[editIndex].email && { email: editData.email }),
+            level: editData.level,
           }),
         }
       );
@@ -185,6 +185,7 @@ const StudentsEditPage = () => {
       setStatus("Failed to save. Try again.");
     }
     setSaving(false);
+    setTimeout(() => setStatus("") , 5000);
   };
 
   // Add course to student
@@ -331,6 +332,7 @@ const StudentsEditPage = () => {
           // Also remove from the all students array
           setStudents(students.filter(student => student._id !== studentId));
           setStatus("Student deleted successfully!");
+          setTimeout(() => setStatus("") , 5000);
         } else {
           let errorMsg = "Failed to delete student.";
           try {
@@ -338,10 +340,12 @@ const StudentsEditPage = () => {
             if (errorData && errorData.message) errorMsg = errorData.message;
           } catch {}
           setStatus(`Error deleting student: ${errorMsg}`);
+          setTimeout(() => setStatus("") , 5000);
           console.error("DELETE error:", errorMsg);
         }
       } catch (error) {
         setStatus(`Error deleting student: ${error.message}`);
+        setTimeout(() => setStatus("") , 5000);
         console.error("DELETE error:", error);
       }
     }
@@ -634,9 +638,24 @@ const StudentsEditPage = () => {
                         )}
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-900/30 text-indigo-300 text-xs font-medium border border-indigo-800/30">
-                          {student.level}
-                        </span>
+                        {editIndex === idx ? (
+                          <select
+                            name="level"
+                            value={editData.level}
+                            onChange={handleChange}
+                            className="bg-gray-800 text-white px-2 py-1 rounded w-full outline-none border border-blue-500 focus:ring-2 focus:ring-blue-400 text-sm"
+                          >
+                            <option value="">Choose Level</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                          </select>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-900/30 text-indigo-300 text-xs font-medium border border-indigo-800/30">
+                            {student.level}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-center">
                         <span className="px-2 py-0.5 rounded-full bg-green-900/30 text-green-300 text-xs font-medium border border-green-800/30">
