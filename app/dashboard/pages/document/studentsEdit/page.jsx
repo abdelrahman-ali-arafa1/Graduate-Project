@@ -160,7 +160,8 @@ const StudentsEditPage = () => {
           },
           body: JSON.stringify({
             name: editData.name,
-            email: editData.email
+            // Only include email if it has changed
+            ...(editData.email !== filteredStudents[editIndex].email && { email: editData.email })
           }),
         }
       );
