@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { FaFilter, FaChalkboardTeacher, FaBookOpen, FaCalendarCheck, FaCalendarTimes, FaUserGraduate, FaSync, FaChartLine, FaChevronDown, FaBook, FaChartBar, FaUsers, FaTasks, FaQrcode, FaCommentDots, FaSignOutAlt, FaUniversity, FaExclamationCircle, FaSpinner } from "react-icons/fa";
@@ -8,24 +8,31 @@ import InstructorDashCard from "@/app/components/dashboard/doctor/InstructorDash
 import InstructorPieChart from "@/app/components/dashboard/doctor/InstructorPieChart";
 import InstructorLineChart from "@/app/components/dashboard/doctor/InstructorLineChart";
 import { useGetCoursesQuery } from "@/app/store/features/coursesApiSlice";
-import { useGetDoctorDashboardDataMutation } from "@/app/store/features/dashboardApiSlice";
-import { useSelector } from "react-redux";
+import { useDashboardDoctor } from "@/app/hooks/useDashboardDoctor";
 
 const InstructorDashboard = () => {
-  // State for filters
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedTimeRange, setSelectedTimeRange] = useState("this week");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [dashboardData, setDashboardData] = useState(null);
-  const dropdownRef = React.useRef(null);
+  // Use dashboard hook
+  const {
+    selectedCourse,
+    setSelectedCourse,
+    selectedTimeRange,
+    setSelectedTimeRange,
+    isDropdownOpen,
+    dashboardData,
+    loading,
+    error,
+    toggleDropdown,
+    handleCourseSelect,
+    handleRefresh,
+    calculateSummary,
+    preparePieChartData,
+    prepareLineChartData,
+    getFilteredCourses,
+    initializeSelectedCourse
+  } = useDashboardDoctor();
 
-  // Get instructor courses from Redux
-  const instructorCourses = useSelector((state) => state.userRole.instructorCourses);
-  
-  // Log Redux state for debugging
-  useEffect(() => {
-    console.log("Instructor courses from Redux:", instructorCourses);
-  }, [instructorCourses]);
+  // Refs
+  const dropdownRef = useRef(null);
 
   // Get courses data
   const { data: coursesData, isLoading: coursesLoading } = useGetCoursesQuery();
@@ -37,8 +44,29 @@ const InstructorDashboard = () => {
     }
   }, [coursesData]);
 
-  // Get dashboard data mutation
-  const [getDashboardData, { isLoading: dashboardLoading, isError, error }] = useGetDoctorDashboardDataMutation();
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        // setIsDropdownOpen(false); // Removed in favor of hook state
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter courses to only show instructor's courses
+  const filteredCourses = React.useMemo(() => {
+    return getFilteredCourses(coursesData);
+  }, [coursesData, getFilteredCourses]);
+
+  // Set initial selected course when courses are loaded
+  useEffect(() => {
+    initializeSelectedCourse(filteredCourses);
+  }, [filteredCourses, initializeSelectedCourse]);
 
   // Animation variants
   const containerVariants = {
@@ -64,160 +92,8 @@ const InstructorDashboard = () => {
     }
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Filter courses to only show instructor's courses
-  const filteredCourses = React.useMemo(() => {
-    if (!coursesData || !coursesData.data) {
-      console.log("No courses data available");
-      return [];
-    }
-    
-    // Get instructor course IDs
-    const instructorCourseIds = instructorCourses.map(course => course._id);
-    console.log("Instructor course IDs:", instructorCourseIds);
-    
-    // If no instructor courses are set, return all courses
-    if (instructorCourseIds.length === 0) {
-      console.log("No instructor courses found, using all courses");
-      return coursesData.data;
-    }
-    
-    // Filter courses to only include instructor's courses
-    const filtered = coursesData.data.filter(course => instructorCourseIds.includes(course._id));
-    console.log("Filtered courses for instructor:", filtered);
-    return filtered;
-  }, [coursesData, instructorCourses]);
-
-  // Set initial selected course when courses are loaded
-  useEffect(() => {
-    if (filteredCourses.length > 0 && !selectedCourse) {
-      console.log("Setting initial course:", filteredCourses[0]);
-      setSelectedCourse(filteredCourses[0]);
-    }
-  }, [filteredCourses, selectedCourse]);
-
-  // Fetch dashboard data when course or time range changes
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!selectedCourse || !selectedCourse._id) {
-        console.log("No course selected or course ID missing");
-        return;
-      }
-      
-      console.log("Fetching dashboard data for course:", selectedCourse.courseName, "ID:", selectedCourse._id);
-      
-      try {
-        const response = await getDashboardData({
-          courseId: selectedCourse._id,
-          range: selectedTimeRange
-        }).unwrap();
-        
-        console.log("Dashboard data received:", response);
-        setDashboardData(response);
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-      }
-    };
-    
-    fetchDashboardData();
-  }, [selectedCourse, selectedTimeRange, getDashboardData]);
-
-  // Toggle dropdown
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
-
-  // Handle course select
-  const handleCourseSelect = (course) => {
-    setSelectedCourse(course);
-    setIsDropdownOpen(false);
-  };
-
-  // Calculate summary statistics
-  const calculateSummary = () => {
-    if (!dashboardData) return null;
-    
-    let totalPresent = 0;
-    let totalAbsent = 0;
-    let totalAttendance = 0;
-    let items = [];
-    
-    if (dashboardData.type === 'week' && dashboardData.days) {
-      items = dashboardData.days;
-    } else if (dashboardData.type === 'month' && dashboardData.weeks) {
-      items = dashboardData.weeks;
-    }
-    
-    // Calculate totals
-    items.forEach(item => {
-      totalPresent += item.present;
-      totalAbsent += item.absent;
-    });
-    
-    // Calculate overall attendance rate
-    const total = totalPresent + totalAbsent;
-    const attendanceRate = total > 0 ? Math.round((totalPresent / total) * 100) : 0;
-    
-    // Calculate average attendance rate
-    const avgAttendanceRate = items.length > 0 
-      ? Math.round(items.reduce((sum, item) => sum + item.attendanceRate, 0) / items.length)
-      : 0;
-    
-    return {
-      totalPresent,
-      totalAbsent,
-      attendanceRate,
-      avgAttendanceRate
-    };
-  };
-
-  // Prepare pie chart data
-  const preparePieChartData = () => {
-    const summary = calculateSummary();
-    if (!summary) return [];
-    
-    return [
-      {
-        name: "Present",
-        value: summary.totalPresent,
-        color: "#4ade80"
-      },
-      {
-        name: "Absent",
-        value: summary.totalAbsent,
-        color: "#f87171"
-      }
-    ];
-  };
-
-  // Prepare line chart data
-  const prepareLineChartData = () => {
-    if (!dashboardData) return [];
-    
-    if (dashboardData.type === 'week' && dashboardData.days) {
-      return dashboardData.days;
-    } else if (dashboardData.type === 'month' && dashboardData.weeks) {
-      return dashboardData.weeks;
-    }
-    
-    return [];
-  };
-
   // Loading state
-  if (coursesLoading || (dashboardLoading && !dashboardData)) {
+  if (coursesLoading || (loading && !dashboardData)) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <motion.div
@@ -238,7 +114,7 @@ const InstructorDashboard = () => {
   }
 
   // Error state
-  if (isError || (!coursesLoading && filteredCourses.length === 0)) {
+  if (error || (!coursesLoading && filteredCourses.length === 0)) {
     return (
       <motion.div 
         className="bg-red-900/20 border border-red-500 p-6 rounded-xl text-red-400"
@@ -264,7 +140,7 @@ const InstructorDashboard = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          {error?.message || "Failed to load dashboard data. Please try again."}
+          {error || "Failed to load dashboard data. Please try again."}
         </motion.p>
         
         {filteredCourses.length === 0 && (
@@ -279,7 +155,7 @@ const InstructorDashboard = () => {
         )}
         
         <motion.button 
-          onClick={() => window.location.reload()}
+          onClick={handleRefresh}
           className="mt-6 bg-red-800/30 hover:bg-red-800/50 text-white py-3 px-6 rounded-lg transition-colors flex items-center"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.98 }}
@@ -290,7 +166,7 @@ const InstructorDashboard = () => {
     );
   }
 
-  // Calculate summary
+  // Calculate summary and prepare chart data
   const summary = calculateSummary();
   const pieChartData = preparePieChartData();
   const lineChartData = prepareLineChartData();
@@ -374,13 +250,13 @@ const InstructorDashboard = () => {
             value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value)}
               className="bg-[#1a1f2e] text-white px-3 py-2 rounded-md border border-[#2a2f3e] text-sm focus:outline-none focus:ring-2 focus:ring-[#7950f2] focus:border-transparent appearance-none pr-8"
-              disabled={dashboardLoading}
+              disabled={loading}
           >
               <option value="this week">This Week</option>
               <option value="this month">This Month</option>
           </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-              {dashboardLoading ? (
+              {loading ? (
                 <div className="h-4 w-4 border-2 border-t-2 border-blue-400 rounded-full animate-spin"></div>
               ) : (
                 <FaChevronDown className="text-gray-400" />
@@ -390,7 +266,7 @@ const InstructorDashboard = () => {
         </motion.div>
       </div>
 
-      {dashboardLoading && dashboardData && (
+      {loading && dashboardData && (
         <div className="fixed top-4 right-4 bg-blue-900/70 text-blue-200 py-2 px-4 rounded-lg flex items-center z-50">
           <div className="animate-spin h-4 w-4 border-2 border-blue-200 border-t-transparent rounded-full mr-2"></div>
           Refreshing data...

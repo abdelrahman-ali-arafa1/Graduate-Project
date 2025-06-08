@@ -16,6 +16,23 @@ const InstructorPieChart = ({ data }) => {
   const COLORS = ["#4ade80", "#f87171"];
   const RADIAN = Math.PI / 180;
 
+  // Process data to ensure values are numbers
+  const processedData = data.map(item => ({
+    ...item,
+    value: typeof item.value === 'string' ? parseInt(item.value) || 0 : item.value
+  }));
+
+  // Check if there's actual data to display
+  const totalValue = processedData.reduce((sum, item) => sum + item.value, 0);
+  if (totalValue === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        No attendance data available
+      </div>
+    );
+  }
+
+  // Render active shape with animations
   const renderActiveShape = (props) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
     const sin = Math.sin(-RADIAN * midAngle);
@@ -59,7 +76,7 @@ const InstructorPieChart = ({ data }) => {
           {`${payload.name}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#fff" fontSize={12}>
-          {`${value} actions`}
+          {`${value}`}
         </text>
         <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#9ca3af" fontSize={12}>
           {`(${(percent * 100).toFixed(1)}%)`}
@@ -73,17 +90,7 @@ const InstructorPieChart = ({ data }) => {
     setActiveIndex(index);
   }, []);
 
-  // If no data or all values are 0, show a message
-  const totalValue = data.reduce((sum, item) => sum + item.value, 0);
-  if (data.length === 0 || totalValue === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-gray-400">No attendance data available</p>
-      </div>
-    );
-  }
-
-  // Custom tooltip that changes color based on the segment
+  // Custom tooltip that shows details
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0];
@@ -107,7 +114,7 @@ const InstructorPieChart = ({ data }) => {
             {data.name}
           </p>
           <p className="text-white text-sm">
-            {data.value} actions
+            {data.value}
           </p>
           <p className="text-gray-300 text-xs mt-1">
             {`(${((data.value / totalValue) * 100).toFixed(1)}%)`}
@@ -120,6 +127,7 @@ const InstructorPieChart = ({ data }) => {
 
   return (
     <div className="flex flex-col items-center justify-center" style={{ width: "100%", height: "300px" }}>
+      {console.log("Rendering pie chart with data:", processedData)}
       <ResponsiveContainer>
         <PieChart>
           <defs>
@@ -142,11 +150,11 @@ const InstructorPieChart = ({ data }) => {
           <Pie
             activeIndex={activeIndex}
             activeShape={renderActiveShape}
-            data={data}
+            data={processedData}
             cx="50%"
             cy="50%"
             innerRadius={60}
-            outerRadius={100}
+            outerRadius={90}
             fill="#8884d8"
             dataKey="value"
             onMouseEnter={onPieEnter}
@@ -155,7 +163,7 @@ const InstructorPieChart = ({ data }) => {
             animationBegin={200}
             animationDuration={1000}
           >
-            {data.map((entry, index) => (
+            {processedData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
                 fill={entry.color || COLORS[index % COLORS.length]} 

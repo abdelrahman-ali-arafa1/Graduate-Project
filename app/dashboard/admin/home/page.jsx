@@ -361,7 +361,7 @@ const DashHome = () => {
                   transition={{ delay: 0.2, duration: 0.5 }}
                   className="min-h-[200px] sm:min-h-[300px]"
                 >
-                  <AdminLineChart data={attendanceData.days} />
+                  <AdminLineChart key={activeTab + (attendanceData?.days?.length || 0)} data={attendanceData.days} />
                 </motion.div>
               </motion.div>
               
@@ -384,7 +384,7 @@ const DashHome = () => {
                   transition={{ delay: 0.3, duration: 0.5 }}
                   className="min-h-[180px] sm:min-h-[220px]"
                 >
-                  <AdminPieChart data={pieChartData} />
+                  <AdminPieChart key={activeTab + (attendanceData?.days?.length || 0)} data={pieChartData} />
                 </motion.div>
               </motion.div>
             </div>

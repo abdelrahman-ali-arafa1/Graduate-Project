@@ -41,6 +41,84 @@ export const dashboardApiSlice = createApi({
       },
     }),
     
+    getDoctorDashboardData: builder.mutation({
+      query: (params) => {
+        if (!params || !params.courseId) {
+          throw new Error("Course ID is required");
+        }
+        
+        return {
+          url: `/dashboardDoctor/${params.courseId}`,
+          method: 'POST',
+          body: { range: params.range || "this week" }
+        };
+      },
+      invalidatesTags: ["DashboardData"],
+      transformResponse: (response) => {
+        if (!response) {
+          console.log("Invalid data format from API, returning empty data");
+          return {
+            type: 'week',
+            days: []
+          };
+        }
+
+        console.log("Raw doctor dashboard data received:", response);
+
+        // Process the response based on range type
+        try {
+          let processedResponse = { ...response };
+          
+          // Check if it's weekly data (has days array)
+          if (response.days && Array.isArray(response.days)) {
+            processedResponse.type = 'week';
+            processedResponse.days = response.days.map(day => ({
+              ...day,
+              // Convert string percentage to number if it's a string
+              attendanceRate: typeof day.attendanceRate === 'string' 
+                ? parseInt(day.attendanceRate.replace('%', '')) || 0 
+                : day.attendanceRate || 0,
+              // Ensure present and absent are numbers
+              present: parseInt(day.present) || 0,
+              absent: parseInt(day.absent) || 0
+            }));
+          } 
+          // Check if it's monthly data (has weeks array)
+          else if (response.weeks && Array.isArray(response.weeks)) {
+            processedResponse.type = 'month';
+            processedResponse.weeks = response.weeks.map(week => ({
+              ...week,
+              // Convert string percentage to number if it's a string
+              attendanceRate: typeof week.attendanceRate === 'string' 
+                ? parseInt(week.attendanceRate.replace('%', '')) || 0 
+                : week.attendanceRate || 0,
+              // Ensure present and absent are numbers
+              present: parseInt(week.present) || 0,
+              absent: parseInt(week.absent) || 0
+            }));
+          } else {
+            console.warn("Response does not contain expected data structure");
+          }
+
+          console.log("Processed doctor dashboard data:", processedResponse);
+          return processedResponse;
+        } catch (err) {
+          console.error("Error processing doctor dashboard data:", err);
+          return response; // Return the original response if processing fails
+        }
+      },
+      transformErrorResponse: (response) => {
+        console.error("Error response from getDoctorDashboardData:", response);
+        return {
+          status: response.status || "ERROR",
+          message: response.data?.message || "Failed to fetch dashboard data"
+        };
+      },
+      onError: (error) => {
+        console.error('Doctor Dashboard API error occurred:', error);
+      },
+    }),
+    
     getGradeLevelData: builder.query({
       query: ({ level, department }) => {
         if (!level) {
@@ -91,6 +169,7 @@ export const dashboardApiSlice = createApi({
 
 export const {
   useGetAdminDashboardDataQuery,
+  useGetDoctorDashboardDataMutation,
   useGetGradeLevelDataQuery,
   useUpdateStudentGradeMutation,
 } = dashboardApiSlice; 

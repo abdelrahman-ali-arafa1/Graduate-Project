@@ -8,6 +8,12 @@ const nextConfig = {
       },
     ]
   },
+  images: {
+    domains: [
+      'res.cloudinary.com',
+      'attendance-eslamrazeen-eslam-razeens-projects.vercel.app'
+    ],
+  },
 };
 
 export default nextConfig;

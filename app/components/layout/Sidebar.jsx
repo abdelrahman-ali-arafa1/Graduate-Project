@@ -26,17 +26,16 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard/admin/home" },
     { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/admin" },
     { icon: <FaFolder />, label: "Documents", href: "/dashboard/admin/document" },
-    { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/admin/document/studentsEdit" },
+    { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/admin/studentsEdit" },
     { icon: <FaArrowUp />, label: "My Grade", href: "/dashboard/admin/myGrade" },
-    { icon: <FaMessage />, label: "Messages", href: "#" },
+    { icon: <FaFileMedicalAlt />, label: "Students Apologies", href: "/dashboard/admin/studentsApologies" },
   ] : [
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard" },
     { icon: <MdSubject />, label: "Subjects", href: "/dashboard/doctor/subjects" },
     { icon: <SlCalender />, label: "Take Attendance", href: "/dashboard/doctor/takeAttendance" },
     { icon: <BsClipboard2Check />, label: "Manual Attendance", href: "/dashboard/doctor/manualAttendance" },
     { icon: <MdPeopleAlt />, label: "Students", href: "/dashboard/doctor/students" },
-    { icon: <MdPeopleAlt />, label: "Apology for attendance", href: "/dashboard/doctor/apology" },
-    { icon: <FaMessage />, label: "Messages", href: "/dashboard/doctor/messages" },
+    { icon: <MdPeopleAlt />, label: "Attendance Apologies", href: "/dashboard/doctor/apology" },
   ];
   
   // Set active link based on current path
