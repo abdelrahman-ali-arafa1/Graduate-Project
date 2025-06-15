@@ -27,57 +27,44 @@ import {
   Select,
 } from "@mui/material";
 import { CiSearch } from "react-icons/ci";
-import { FaFilter, FaSort, FaUserPlus, FaDownload, FaSortAmountDown, FaSortAmountUp, FaUserTimes, FaCheckCircle, FaExclamationTriangle, FaSync } from "react-icons/fa";
+import { FaFilter, FaSort, FaUserPlus, FaDownload, FaSortAmountDown, FaSortAmountUp, FaUserTimes, FaCheckCircle, FaExclamationTriangle, FaSync, FaTrashAlt } from "react-icons/fa";
 import { MdFilterList, MdFilterListOff } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import {
   useAddStudentAttendanceMutation,
   useGetAllAttendancesQuery,
   useGetManualAttendanceQuery,
+  useUpdateAttendanceStatusMutation
 } from "@/app/store/features/attendanceApiSlice"; // Updated Redux import path
 import { useTheme } from "@/app/components/providers/ThemeProvider"; // Updated ThemeProvider import path
 import { Tooltip as MuiTooltip, tooltipClasses } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 // Add this helper function at the top of the file, outside the component
-const getAttendanceStatus = (student) => {
+const getAttendanceStatus = (item) => {
   // Handle direct attendanceStatus field from new API format
-  if (student && student.attendanceStatus) {
-    return student.attendanceStatus;
+  if (item && item.attendanceStatus) {
+    return item.attendanceStatus;
   }
   
-  // Handle older formats
-  return student.studentAttendanc || 
-         (student.student && student.student.attendanceStatus) || 
-         "Not recorded";
+  // Handle older formats where studentAttendanc or student.attendanceStatus might be used
+  return item.studentAttendanc || item.student?.attendanceStatus || "Not recorded";
 };
 
 // تعديل ظهور رسائل الحضور والغياب
-const AttendanceButton = ({ onClick, color, icon, disabled, tooltipText, tooltipClass = "" }) => {
-  const isDefaultTooltip = !tooltipText.includes("Already");
-  
+const AttendanceButton = ({ onClick, color, icon, disabled }) => {
   return (
-    <div className="relative">
-      <button
-        onClick={onClick}
-        disabled={disabled}
-        className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
-          disabled ? 
-          'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
-          `${color} text-white hover:shadow-lg hover:-translate-y-0.5`
-        } ${tooltipClass}`}
-      >
-        {icon}
-      </button>
-      
-      {/* Status indicator that will be displayed on hover without tooltips */}
-      {disabled && (
-        <div className={`absolute right-0 -top-10 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium 
-          ${tooltipText.includes("present") ? "bg-green-600" : "bg-red-600"} text-white opacity-0 group-hover:opacity-100 transition-opacity`}>
-          {tooltipText}
-        </div>
-      )}
-    </div>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
+        disabled ? 
+        'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
+        `${color} text-white hover:shadow-lg hover:-translate-y-0.5`
+      }`}
+    >
+      {icon}
+    </button>
   );
 };
 
@@ -135,7 +122,13 @@ const CustomTooltipAbsent = styled(({ className, ...props }) => (
   },
 }));
 
-export default function AttendanceTable({ allowMarkAbsent = false }) {
+export default function AttendanceTable({
+  allowMarkAbsent = false,
+  attendanceData, // Prop for manual attendance records
+  isAttendanceLoading, // Prop for manual attendance loading state
+  handleUpdateAttendance, // Prop for updating attendance status
+  isUpdatingAttendance, // Prop for updating attendance loading state
+}) {
   const [isRendered, setIsRendered] = useState(false);
   const sessionId = useSelector((state) => state.session.sessionId);
   const lecturerRole = useSelector((state) => state.userRole.isInstructor);
@@ -163,9 +156,9 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
   // Debug the course ID
   useEffect(() => {
     if (courseId) {
-      console.log("Using course ID in AttendanceTable:", courseId);
+      // console.log("Using course ID in AttendanceTable:", courseId);
     } else {
-      console.warn("No course ID available in AttendanceTable");
+      // console.warn("No course ID available in AttendanceTable");
     }
   }, [courseId]);
   
@@ -178,96 +171,61 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
   } = useGetAllAttendancesQuery(
     courseId,
     {
-      skip: !courseId || (allowMarkAbsent && sessionId), // Skip if in manual mode with active session
+      skip: !courseId || (allowMarkAbsent),
     }
   );
   
-  // Fetch manual attendance data for current session
-  const { 
-    data: manualAttendanceData, 
-    error: manualAttendanceError, 
-    isLoading: isLoadingManualAttendance,
-    refetch: refetchManualAttendance
-  } = useGetManualAttendanceQuery(
-    sessionId,
-    {
-      skip: !courseId || !allowMarkAbsent, // Only fetch when in manual mode with active course
-    }
-  );
-  
-  // Refetch data when sessionId changes
+  // Refetch data when sessionId changes (only for non-manual mode)
+  // Manual mode data is passed via props and re-fetched by the hook
   useEffect(() => {
-    if (courseId && allowMarkAbsent && refetchManualAttendance) {
-      console.log("Course or session changed, refetching manual attendance data");
-      refetchManualAttendance();
+    if (courseId && !allowMarkAbsent && refetchAllAttendance) {
+      // console.log("Course changed, refetching all attendance data");
+      refetchAllAttendance();
     }
-  }, [sessionId, courseId, allowMarkAbsent, refetchManualAttendance]);
-  
-  // Debug logs
-  useEffect(() => {
-    if (allowMarkAbsent) {
-      console.log("Manual attendance mode active with session ID:", sessionId);
-      console.log("Manual attendance data:", manualAttendanceData);
-    } else {
-      console.log("Regular attendance mode active");
-      console.log("All attendance data:", allAttendanceData);
-    }
-  }, [allowMarkAbsent, sessionId, manualAttendanceData, allAttendanceData]);
+  }, [courseId, allowMarkAbsent, refetchAllAttendance]);
   
   // Determine which data to use
-  const data = allowMarkAbsent ? manualAttendanceData : allAttendanceData;
-  const error = allowMarkAbsent ? manualAttendanceError : allAttendanceError;
-  const isLoading = allowMarkAbsent ? isLoadingManualAttendance : isLoadingAllAttendance;
-  const refetch = allowMarkAbsent ? refetchManualAttendance : refetchAllAttendance;
-  
-  // Debug the final data being used
-  useEffect(() => {
-    console.log("Final data being used:", data);
-    if (data?.students) {
-      console.log("Students array:", data.students);
-      console.log("Number of students:", data.students.length || 0);
+  const studentsToDisplay = useMemo(() => {
+    if (allowMarkAbsent) {
+      return attendanceData || [];
     } else {
-      console.warn("No students data available or data structure is incorrect");
-      // Try to diagnose the issue
-      if (!data) {
-        console.error("Data is null or undefined");
-      } else {
-        console.error("Data structure doesn't contain students array:", Object.keys(data));
-      }
+      return allAttendanceData?.students?.filter(student => student.role === 'student') || [];
     }
-    
-    // Log any errors
-    if (error) {
-      console.error("Error fetching attendance data:", error);
-      // Extract and log more details about the error
-      if (error.status) {
-        console.error(`Error status: ${error.status}`);
-      }
-      if (error.message) {
-        console.error(`Error message: ${error.message}`);
-      }
-      if (error.data) {
-        console.error("Error data:", error.data);
-      }
-    }
-  }, [data, error]);
-  
-  // Add a retry mechanism for data fetching
-  useEffect(() => {
-    if (error && refetch) {
-      // Wait 3 seconds before retrying (increased from 2s)
-      const retryTimer = setTimeout(() => {
-        console.log("Retrying data fetch due to error");
-        refetch();
-      }, 3000);
-      
-      return () => clearTimeout(retryTimer);
-    }
-  }, [error, refetch]);
-  
-  const [addStudentAttendance, { isLoading: isLoadingAdding }] =
-    useAddStudentAttendanceMutation();
+  }, [allowMarkAbsent, attendanceData, allAttendanceData]);
 
+  // Determine the loading state
+  const isLoading = allowMarkAbsent ? isAttendanceLoading : isLoadingAllAttendance;
+  
+  // Determine the error state
+  const error = allowMarkAbsent ? null : allAttendanceError; // Error from prop is not handled here, assume prop handles it
+
+  // Combined handler for marking attendance
+  const handleMarkAttendance = async (row, status) => {
+    if (isUpdatingAttendance) return; // Prevent multiple clicks
+
+    if (allowMarkAbsent) {
+      // For manual attendance mode, use the passed prop
+      // attendanceData provides item directly, which has student._id
+      await handleUpdateAttendance(row._id, status);
+    } else {
+      // For general attendance table, use the RTK Query mutation
+      try {
+        const payload = {
+          studentID: row.student?._id || row._id, // Use the correct ID depending on structure
+          courseId: storedCourse._id,
+          status,
+        };
+        await addStudentAttendance(payload).unwrap();
+        // Refetch relevant data after successful update
+        refetchAllAttendance();
+      } catch (error) {
+        console.error("Failed to mark attendance in regular mode:", error);
+        alert(`Failed to mark attendance: ${error.data?.message || "Unknown error"}`);
+      }
+    }
+  };
+
+  const [addStudentAttendance] = useAddStudentAttendanceMutation();
   const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -279,7 +237,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [availableDepartments, setAvailableDepartments] = useState([]);
   
-  const users = data?.students || [];
+  const users = studentsToDisplay || [];
   const isSmallScreen = useMediaQuery("(max-width:930px)");
 
   // Extract unique departments for filter dropdown
@@ -342,6 +300,10 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
         case "department":
           fieldA = a?.student?.department || "";
           fieldB = b?.student?.department || "";
+          break;
+        case "level":
+          fieldA = a?.student?.level || "";
+          fieldB = b?.student?.level || "";
           break;
         case "status":
           fieldA = getAttendanceStatus(a) || "";
@@ -424,71 +386,6 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
     saveAs(data, `${storedCourse.courseName || 'Course'}_Attendance.xlsx`);
   };
 
-  // Add user attendance
-  const handleAddUserAttendance = async (row, status = "present") => {
-    console.log("Marking attendance for student:", row);
-    
-    // Check if student data exists
-    if (!row || !row.student || !row.student._id) {
-      window.alert("Student data is unavailable or invalid");
-      console.error("Invalid student data:", row);
-      return;
-    }
-    
-    // Check if session ID exists
-    if (!sessionId) {
-      window.alert("No active session. Please create a session first.");
-      return;
-    }
-    
-    // Get current attendance status
-    const currentStatus = getAttendanceStatus(row);
-    
-    // Check if student is already marked with the same status
-    if (currentStatus === status) {
-      window.alert(`Student ${row.student?.name || ''} is already marked ${status}`);
-      return;
-    }
-
-    const statusMessage = status === "present" ? "present" : "absent";
-    
-    // No confirmation dialog for any status
-      try {
-        const newAttendance = {
-          student: row.student?._id,
-          sessionID: sessionId,
-          attendanceStatus: status,
-          sessionType: lecturerRole === "instructor" ? "lecture" : "section",
-          timestamp: new Date().toISOString()
-        };
-
-        console.log("Sending attendance data:", newAttendance);
-
-        // Validate data before sending
-        if (!newAttendance.student || !newAttendance.sessionID) {
-          throw new Error("Incomplete attendance data");
-        }
-
-        const response = await addStudentAttendance({
-          courseId: storedCourse._id || courseId,
-          newUser: newAttendance,
-        });
-
-        console.log("Attendance response:", response);
-
-      // No success message alert for any status
-        
-        // Refresh data 
-        if (refetch) {
-          console.log("Refetching attendance data");
-          refetch();
-        }
-      } catch (err) {
-        console.error("Failed to add attendance:", err);
-        window.alert(`Failed to record attendance: ${err.message || "Unexpected error occurred"}`);
-    }
-  };
-  
   if (!isRendered) return null;
   
   if (isLoading) {
@@ -544,7 +441,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
   const attendanceRate = totalStudents > 0 ? Math.round((presentStudents / totalStudents) * 100) : 0;
 
   // If there's an error or no data, show an error message
-  if (error || (!isLoading && (!data || !data.students))) {
+  if (error || (!isLoading && (!studentsToDisplay || !studentsToDisplay.length))) {
     return (
       <Paper
         elevation={0}
@@ -570,7 +467,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
             {error?.originalStatus && `Original status: ${error.originalStatus}`}
           </Typography>
           <Button
-            onClick={() => refetch && refetch()}
+            onClick={() => refetchAllAttendance && refetchAllAttendance()}
             variant="contained"
             startIcon={<FaSync />}
             sx={{
@@ -798,8 +695,8 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                     className="bg-[#0d111c] text-white w-full py-2.5 pl-10 pr-10 rounded-md border border-[#2a2f3e] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none transition-all"
                   >
                     <option value="all">All Departments</option>
-                    {availableDepartments.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
+                    {availableDepartments.map((dept, index) => (
+                      <option key={dept || `dept-option-${index}`} value={dept}>{dept}</option>
                     ))}
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -830,6 +727,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                     <option value="id-asc">ID (Ascending)</option>
                     <option value="id-desc">ID (Descending)</option>
                     <option value="department-asc">Department (A-Z)</option>
+                    <option value="level-asc">Level (A-Z)</option>
                     <option value="status-asc">Status (Present First)</option>
                     <option value="status-desc">Status (Absent First)</option>
                   </select>
@@ -1009,7 +907,33 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         Department
                         {sortField === "department" && (
                           <span className="ml-1 transition-transform duration-300">
-                            {sortDirection === "asc" ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />}
+                            {sortDirection === "asc" ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />} 
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell 
+                      align="center" 
+                      onClick={() => handleSort("level")}
+                      sx={{ 
+                        fontWeight: "bold", 
+                        backgroundColor: "#1a1f2e",
+                        color: "white",
+                        display: { xs: 'none', md: 'table-cell' },
+                        cursor: "pointer",
+                        transition: "background-color 0.2s",
+                        "&:hover": { backgroundColor: "#2a2f3e" },
+                        py: 3,
+                        borderBottom: "2px solid var(--primary)",
+                        width: { xs: "80px", sm: "100px" },
+                        fontSize: { xs: '0.75rem', sm: '0.85rem' }
+                      }}
+                    >
+                      <div className="flex items-center justify-center">
+                        Level
+                        {sortField === "level" && (
+                          <span className="ml-1 transition-transform duration-300">
+                            {sortDirection === "asc" ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />} 
                           </span>
                         )}
                       </div>
@@ -1035,7 +959,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                         Status
                         {sortField === "status" && (
                           <span className="ml-1 transition-transform duration-300">
-                            {sortDirection === "asc" ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />}
+                            {sortDirection === "asc" ? <FaSortAmountUp size={14} /> : <FaSortAmountDown size={14} />} 
                           </span>
                         )}
                       </div>
@@ -1070,7 +994,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2, delay: index * 0.05 }}
                             component={TableRow}
-                            key={row._id || row.student._id}
+                            key={row._id || row.student?._id || `attendance-row-${index}`}
                             hover
                             sx={{ 
                               cursor: "pointer",
@@ -1097,7 +1021,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               scope="row" 
                               sx={{ 
                                 color: "white", 
-                                py: 2.5, 
+                                py: 3, 
                                 borderBottom: "1px solid #2a2f3e",
                                 borderLeft: {
                                   xs: "none",
@@ -1110,7 +1034,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                             </TableCell>
                             <TableCell sx={{ 
                               color: "white", 
-                              py: 2.5, 
+                              py: 3, 
                               borderBottom: "1px solid #2a2f3e",
                               borderLeft: {
                                 xs: "none",
@@ -1125,7 +1049,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               sx={{ 
                                 color: "white",
                                 display: { xs: 'none', sm: 'table-cell' },
-                                py: 2.5,
+                                py: 3,
                                 borderBottom: "1px solid #2a2f3e",
                                 borderLeft: {
                                   xs: "none",
@@ -1141,8 +1065,26 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                             <TableCell 
                               align="center" 
                               sx={{ 
+                                color: "white",
                                 display: { xs: 'none', md: 'table-cell' },
-                                py: 2.5,
+                                py: 3,
+                                borderBottom: "1px solid #2a2f3e",
+                                borderLeft: {
+                                  xs: "none",
+                                  sm: "3px solid transparent"
+                                },
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <span className="bg-[#2a2f3e] text-gray-300 px-3 py-1 rounded-md text-sm">
+                                {row.student?.level || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell 
+                              align="center" 
+                              sx={{ 
+                                display: { xs: 'none', md: 'table-cell' },
+                                py: 3,
                                 borderBottom: "1px solid #2a2f3e",
                                 borderLeft: {
                                   xs: "none",
@@ -1164,7 +1106,7 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               </span>
                             </TableCell>
                             <TableCell align="center" sx={{ 
-                              py: 2,
+                              py: 3,
                               borderBottom: "1px solid #2a2f3e",
                               borderLeft: {
                                 xs: "none",
@@ -1175,15 +1117,15 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                               <div className="flex gap-2 justify-center">
                                 <div className="relative group">
                                   <button
-                                      onClick={() => handleAddUserAttendance(row, "present")}
-                                      disabled={isLoadingAdding || status === "present"}
+                                      onClick={() => handleMarkAttendance(row, "present")}
+                                      disabled={isUpdatingAttendance || status === "present"}
                                     className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
                                       status === "present" ? 
                                       'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 
                                       'bg-green-600 text-white hover:shadow-lg hover:-translate-y-0.5'
                                     }`}
                                     >
-                                      <FaUserPlus />
+                                      <FaCheckCircle />
                                   </button>
                                   
                                   {status === "present" && (
@@ -1198,8 +1140,8 @@ export default function AttendanceTable({ allowMarkAbsent = false }) {
                                 {allowMarkAbsent && (
                                   <div className="relative group">
                                     <button
-                                        onClick={() => handleAddUserAttendance(row, "absent")}
-                                        disabled={isLoadingAdding || status === "absent"}
+                                        onClick={() => handleMarkAttendance(row, "absent")}
+                                        disabled={isUpdatingAttendance || status === "absent"}
                                       className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${
                                         status === "absent" ? 
                                         'bg-gray-700/20 text-gray-500 cursor-not-allowed' : 

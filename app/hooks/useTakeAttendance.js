@@ -5,6 +5,7 @@ import {
   useGetQrCodeMutation,
   useEndSessionMutation,
 } from "@/app/store/features/sessionApiSlice";
+import { useFingerprintFirstVerifyMutation } from "@/app/store/features/fingerprintApiSlice";
 import { setSessionId, clearSessionId } from "@/app/store/slices/sessionSlice";
 
 export const useTakeAttendance = () => {
@@ -17,6 +18,7 @@ export const useTakeAttendance = () => {
   const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
   const [getQrCode, { isLoading: isLoadingQrCode }] = useGetQrCodeMutation();
   const [endSession, { isLoading: isEndingSession }] = useEndSessionMutation();
+  const [fingerprintFirstVerify, { isLoading: isVerifyingFingerprint }] = useFingerprintFirstVerifyMutation();
   
   // Local state
   const [qrCode, setQrCode] = useState("");
@@ -47,6 +49,15 @@ export const useTakeAttendance = () => {
       setSessionActive(true);
       setCountdown(changeTime.changeSpeed);
       
+      // استدعاء API التحقق من البصمة هنا
+      try {
+        await fingerprintFirstVerify({ sessionID: response.sessionId }).unwrap();
+        console.log("Fingerprint verification API called successfully for session:", response.sessionId);
+      } catch (fingerprintError) {
+        console.error("Failed to call fingerprint verification API:", fingerprintError);
+        // يمكنك اختيار إظهار تنبيه أو التعامل مع الخطأ بشكل مختلف
+      }
+
       // Add timer to automatically end the session after the specified time
       const timer = setTimeout(() => {
         handleEndSession();

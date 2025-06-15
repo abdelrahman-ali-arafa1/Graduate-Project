@@ -30,9 +30,9 @@ const FiltersPanel = ({
         <div>
           <h3 className="text-xs sm:text-sm text-white mb-1.5 sm:mb-2">Level</h3>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {levels.map((level) => (
+            {levels.map((level, index) => (
               <motion.button
-                key={level}
+                key={level || `level-filter-${index}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedLevel(level === selectedLevel ? "" : level)}
@@ -52,9 +52,9 @@ const FiltersPanel = ({
         <div>
           <h3 className="text-xs sm:text-sm text-white mb-1.5 sm:mb-2">Department</h3>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {departments.map((dept) => (
+            {departments.map((dept, index) => (
               <motion.button
-                key={dept}
+                key={dept || `dept-filter-${index}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedDepartment(dept === selectedDepartment ? "" : dept)}
@@ -74,9 +74,9 @@ const FiltersPanel = ({
         <div>
           <h3 className="text-xs sm:text-sm text-white mb-1.5 sm:mb-2">Semester</h3>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {semesters.map((sem) => (
+            {semesters.map((sem, index) => (
               <motion.button
-                key={sem}
+                key={sem || `sem-filter-${index}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedSemester(sem === selectedSemester ? "" : sem)}

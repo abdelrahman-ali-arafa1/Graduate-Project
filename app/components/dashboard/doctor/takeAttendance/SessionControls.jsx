@@ -100,7 +100,7 @@ const SessionControls = ({
               onChange={handleInputsChange}
               min="5"
               max="60"
-              className="w-full bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+              className="w-full bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent no-spinner"
             />
           </div>
           
@@ -116,7 +116,7 @@ const SessionControls = ({
               onChange={handleInputsChange}
               min="5"
               max="120"
-              className="w-full bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+              className="w-full bg-[var(--background-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent no-spinner"
             />
           </div>
         </div>

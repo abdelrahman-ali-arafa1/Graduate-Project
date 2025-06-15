@@ -200,7 +200,7 @@ export default function DocumentTable() {
               </TableHead>
               <TableBody>
                 {visibleRows.map((row, index) => (
-                  <TableRow key={index} hover sx={{ cursor: "pointer" }}>
+                  <TableRow key={row.email || `document-row-${index}`} hover sx={{ cursor: "pointer" }}>
                     <TableCell align="left" sx={{ color: "#000" }}>
                       {row.name}
                     </TableCell>

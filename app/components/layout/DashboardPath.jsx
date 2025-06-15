@@ -37,7 +37,7 @@ const DashboardPath = () => {
         </Link>
         
         {breadcrumbs.map((breadcrumb, index) => (
-          <React.Fragment key={index}>
+          <React.Fragment key={breadcrumb.path}>
             <FaChevronRight className="mx-2 text-gray-500 text-xs" />
             
             {index === breadcrumbs.length - 1 ? (

@@ -33,9 +33,9 @@ const FiltersBar = ({
 
       {/* Status Filter */}
       <div className="flex items-center gap-2">
-        {statuses.map((status) => (
+        {statuses.map((status, index) => (
           <button
-            key={status}
+            key={status || `status-filter-${index}`}
             onClick={() => setStatusFilter(status)}
             className={`px-4 py-2 text-sm rounded-lg transition-colors capitalize
               ${statusFilter === status 
@@ -57,7 +57,7 @@ const FiltersBar = ({
           onChange={(e) => setCourseFilter(e.target.value)}
           className="w-full md:w-48 p-2 pl-4 pr-10 rounded-lg bg-[#2a2f3e] text-white border border-[#3b4152] focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 20 20\' fill=\'currentColor\'%3E%3Cpath fill-rule=\'evenodd\' d=\'M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z\' clip-rule=\'evenodd\'%3E%3C/path%3E%3C/svg%3E")`,
             backgroundRepeat: "no-repeat",
             backgroundPosition: "right 0.75rem center",
             backgroundSize: "1.5em 1.5em",
@@ -66,8 +66,8 @@ const FiltersBar = ({
           <option value="all">All Courses</option>
           {coursesForDropdown
             .filter(courseName => courseName !== 'all')
-            .map((courseName) => (
-              <option key={courseName} value={courseName}>
+            .map((courseName, index) => (
+              <option key={courseName || `course-filter-${index}`} value={courseName}>
                 {courseName}
               </option>
             ))}

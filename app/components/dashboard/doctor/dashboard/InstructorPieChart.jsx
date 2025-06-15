@@ -165,7 +165,7 @@ const InstructorPieChart = ({ data }) => {
           >
             {processedData.map((entry, index) => (
               <Cell 
-                key={`cell-${index}`} 
+                key={`cell-${entry.name}-${index}`} 
                 fill={entry.color || COLORS[index % COLORS.length]} 
                 stroke="#1a1f2e"
                 strokeWidth={2}

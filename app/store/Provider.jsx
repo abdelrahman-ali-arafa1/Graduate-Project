@@ -18,6 +18,7 @@ import { dashboardApiSlice } from './features/dashboardApiSlice';
 import { documentsApiSlice } from './features/documentsApiSlice';
 import { studentsApiSlice } from './features/studentsApiSlice';
 import { apologyApiSlice } from './features/apologyApiSlice';
+import { fingerprintApiSlice } from './features/fingerprintApiSlice';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
 // إنشاء متجر جديد لكل طلب
@@ -39,6 +40,7 @@ const makeStore = () => {
       [documentsApiSlice.reducerPath]: documentsApiSlice.reducer,
       [studentsApiSlice.reducerPath]: studentsApiSlice.reducer,
       [apologyApiSlice.reducerPath]: apologyApiSlice.reducer,
+      [fingerprintApiSlice.reducerPath]: fingerprintApiSlice.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(
@@ -50,7 +52,8 @@ const makeStore = () => {
         dashboardApiSlice.middleware,
         documentsApiSlice.middleware,
         studentsApiSlice.middleware,
-        apologyApiSlice.middleware
+        apologyApiSlice.middleware,
+        fingerprintApiSlice.middleware
       ),
     devTools: process.env.NODE_ENV !== 'production',
   });

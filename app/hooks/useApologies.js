@@ -6,6 +6,7 @@ import {
   useUpdateApologyStatusMutation,
   useGetInstructorApologiesQuery,
 } from "../store/features/apologyApiSlice";
+import { useGetCoursesQuery } from "@/app/store/features/coursesApiSlice";
 
 export default function useApologies(props = {}) {
   // Get user role from Redux store - check both possible structures in the auth state
@@ -15,7 +16,7 @@ export default function useApologies(props = {}) {
   // Allow overriding the role from props (for doctor/instructor pages)
   const role = props.role || userRole;
 
-  console.log("Current role:", role); // For debugging
+  console.log("useApologies hook: Current role detected:", role); // For debugging
   
   // State for filters
   const [statusFilter, setStatusFilter] = useState(props.initialStatusFilter || "all");
@@ -49,11 +50,20 @@ export default function useApologies(props = {}) {
     skip: role !== "doctor" && role !== "instructor",
   });
 
+  // Fetch all courses (for dropdown)
+  const { data: allCoursesData, isLoading: isLoadingAllCourses } = useGetCoursesQuery();
+  const allCourses = allCoursesData?.data || [];
+  
+  // Get instructor courses from Redux store
+  const instructorCoursesFromRedux = useSelector((state) => state.userRole.instructorCourses);
+
   // Log API response data for debugging
   useEffect(() => {
-    console.log("Admin apologies data:", allApologiesData);
-    console.log("Instructor apologies data:", instructorApologiesData);
-  }, [allApologiesData, instructorApologiesData]);
+    // console.log("Admin apologies data:", allApologiesData);
+    console.log("useApologies hook: Instructor apologies data from API:", instructorApologiesData);
+    console.log("useApologies hook: All courses from API:", allCoursesData);
+    console.log("useApologies hook: Instructor courses from Redux:", instructorCoursesFromRedux);
+  }, [allApologiesData, instructorApologiesData, allCoursesData, instructorCoursesFromRedux]);
 
   const [updateApologyStatusMutation, { isLoading: isUpdating }] = useUpdateApologyStatusMutation();
 
@@ -87,17 +97,7 @@ export default function useApologies(props = {}) {
        apologies = apologies.filter(a => a.course?.courseName === courseFilter);
     }
 
-    if (searchQuery) {
-      const lowercasedQuery = searchQuery.toLowerCase();
-      apologies = apologies.filter(
-        (a) =>
-          (a.student?.name?.toLowerCase().includes(lowercasedQuery)) ||
-          (a.student?.email?.toLowerCase().includes(lowercasedQuery)) ||
-          (a.course?.courseName?.toLowerCase().includes(lowercasedQuery))
-      );
-    }
-
-    console.log("Filtered apologies:", apologies.length);
+    console.log("useApologies hook: Filtered apologies count:", apologies.length); // Changed log message
     setFilteredApologies(apologies);
   }, [apologiesData, statusFilter, searchQuery, departmentFilter, courseFilter, role]);
 
@@ -194,10 +194,20 @@ export default function useApologies(props = {}) {
   const departments = ["all", "CS", "IS", "AI", "BIO"];
   
   const coursesForDropdown = useMemo(() => {
-    if ((role !== 'doctor' && role !== 'instructor') || !instructorApologiesData) return ['all'];
-    const courseNames = instructorApologiesData.map(a => a.course?.courseName).filter(Boolean);
-    return ['all', ...new Set(courseNames)];
-  }, [role, instructorApologiesData]);
+    if (role === 'admin') { // Admin gets all courses
+      const courseNames = allCourses.map(c => c.courseName).filter(Boolean) || [];
+      return ['all', ...new Set(courseNames)];
+    } else if (role === 'doctor' || role === 'instructor') { // Instructor gets their assigned courses
+      // Filter all courses by instructor's assigned courses from Redux
+      const instructorCourseIds = new Set(instructorCoursesFromRedux.map(c => c._id));
+      const filteredInstructorCourses = allCourses.filter(course => instructorCourseIds.has(course._id));
+      
+      const courseNames = filteredInstructorCourses.map(c => c.courseName).filter(Boolean);
+      console.log("useApologies hook: Filtered courses for dropdown (from Redux):", courseNames);
+      return ['all', ...new Set(courseNames)];
+    }
+    return ['all'];
+  }, [role, allCourses, instructorCoursesFromRedux]);
 
   const isLoading = useMemo(() => {
     if (role === 'admin') return isLoadingAdmin;

@@ -116,8 +116,8 @@ const AdminApologiesPage = () => {
         
         <div className="flex items-center gap-2">
             <p className="text-gray-400"><FaFilter /></p>
-            {statuses.map((status) => (
-                <button key={status} onClick={() => setStatusFilter(status)} className={`px-4 py-2 text-sm rounded-lg transition-colors capitalize ${statusFilter === status ? 'bg-indigo-600 text-white' : 'bg-[#2a2f3e] text-gray-300 hover:bg-indigo-500/20'}`}>
+            {statuses.map((status, index) => (
+                <button key={status || `status-filter-${index}`} onClick={() => setStatusFilter(status)} className={`px-4 py-2 text-sm rounded-lg transition-colors capitalize ${statusFilter === status ? 'bg-indigo-600 text-white' : 'bg-[#2a2f3e] text-gray-300 hover:bg-indigo-500/20'}`}>
                     {status}
                 </button>
             ))}
@@ -126,16 +126,16 @@ const AdminApologiesPage = () => {
         <div className="relative w-full md:w-auto">
             <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="w-full md:w-48 p-2 pl-10 pr-4 rounded-lg bg-[#2a2f3e] text-white border border-[#3b4152] focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none">
-                {departments.map((dept) => (<option key={dept} value={dept}>{dept === 'all' ? 'All Departments' : dept}</option>))}
+                {departments.map((dept, index) => (<option key={dept || `dept-option-${index}`} value={dept}>{dept === 'all' ? 'All Departments' : dept}</option>))}
             </select>
         </div>
       </motion.div>
 
       <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={containerVariants}>
         {filteredApologies.length > 0 ? (
-          filteredApologies.map((apology) => (
+          filteredApologies.map((apology, index) => (
             <motion.div
-              key={apology._id}
+              key={apology._id || `apology-row-${index}`}
               className="bg-[#1a1f2e] rounded-xl border border-[#2a2f3e] p-5 shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
               variants={{ ...itemVariants, ...cardVariants }}
               whileHover="hover"

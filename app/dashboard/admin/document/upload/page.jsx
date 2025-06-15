@@ -1,14 +1,24 @@
 "use client";
-import { useAddStudentsSheetMutation } from "@/app/store/features/attendanceApiSlice";
-import { setData } from "@/app/store/slices/dataUploadReducer";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import * as XLSX from "xlsx";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaUpload, FaSave, FaArrowLeft, FaFilter, FaTable } from "react-icons/fa";
-import { IoCloudUpload, IoCheckmarkCircle, IoWarning, IoInformationCircle } from "react-icons/io5";
+import { motion } from "framer-motion";
+import { FaArrowLeft } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import { LEVELS, DEPARTMENTS, isValidLevel, isValidDepartment } from "@/app/hooks/constants";
+
+// Redux actions and API
+import { useAddStudentsSheetMutation } from "@/app/store/features/attendanceApiSlice";
+import { setData } from "@/app/store/slices/dataUploadReducer";
+
+// Components
+import PageHeader from "@/app/components/dashboard/admin/document/PageHeader";
+import LevelDepartmentFilter from "@/app/components/dashboard/admin/document/upload/LevelDepartmentFilter";
+import FileUploadArea from "@/app/components/dashboard/admin/document/upload/FileUploadArea";
+import FilePreview from "@/app/components/dashboard/admin/document/upload/FilePreview";
+import StatusMessage from "@/app/components/dashboard/admin/document/upload/StatusMessage";
+
+// Constants
+import { isValidLevel, isValidDepartment } from "@/app/hooks/constants";
 
 const DocumentUpload = () => {
   const [isRendered, setIsRendered] = useState(false);
@@ -76,7 +86,7 @@ const DocumentUpload = () => {
     }
     
     // Validate required columns
-    const requiredColumns = ['name', 'email', 'department', 'level'];
+    const requiredColumns = ['name', 'email'];
     const firstRow = jsonData[0];
     const headers = Object.keys(firstRow).map(key => key.toLowerCase());
     
@@ -85,7 +95,7 @@ const DocumentUpload = () => {
     );
     
     if (missingColumns.length > 0) {
-      errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+      errors.push(`Missing required columns: ${missingColumns.join(', ')}. At minimum, the Excel file must contain name and email columns.`);
     }
     
     return errors;
@@ -111,7 +121,7 @@ const DocumentUpload = () => {
       if (levelKey && row[levelKey]) {
         const level = row[levelKey].toString();
         if (!isValidLevel(level)) {
-          errors.push(`Invalid level in row ${index + 1}: ${level}. Must be one of: ${LEVELS.join(', ')}.`);
+          errors.push(`Invalid level in row ${index + 1}: ${level}.`);
         }
       }
       
@@ -120,7 +130,7 @@ const DocumentUpload = () => {
       if (deptKey && row[deptKey]) {
         const dept = row[deptKey].toString().toUpperCase();
         if (!isValidDepartment(dept)) {
-          errors.push(`Invalid department in row ${index + 1}: ${dept}. Must be one of: ${DEPARTMENTS.join(', ')}.`);
+          errors.push(`Invalid department in row ${index + 1}: ${dept}.`);
         }
       }
     });
@@ -157,6 +167,8 @@ const DocumentUpload = () => {
   const addMissingColumns = (jsonData) => {
     const hasLevel = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'level');
     const hasDepartment = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'department');
+    const hasPassword = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'password');
+    const hasPasswordConfirm = jsonData.length > 0 && Object.keys(jsonData[0]).some(key => key.toLowerCase() === 'passwordconfirm');
 
     return jsonData.map(row => {
       const newRow = { ...row };
@@ -165,6 +177,14 @@ const DocumentUpload = () => {
       }
       if (!hasDepartment && selectedDepartment) {
         newRow['department'] = selectedDepartment;
+      }
+      // Add default password if missing
+      if (!hasPassword) {
+        newRow['password'] = 'password123';
+      }
+      // Add default passwordConfirm matching password if missing
+      if (!hasPasswordConfirm) {
+        newRow['passwordConfirm'] = newRow['password'] || 'password123';
       }
       return newRow;
     });
@@ -248,7 +268,8 @@ const DocumentUpload = () => {
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e) => {
+    e.preventDefault();
     setIsDragging(false);
   };
 
@@ -256,451 +277,185 @@ const DocumentUpload = () => {
     e.preventDefault();
     setIsDragging(false);
     
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      processExcelFile(file);
-    }
-  };
-
-  const handleFileSave = async () => {
-    // Check if we have data to save
-    if (!hasData) {
-      showStatusMessage("error", "No data to save. Please upload an Excel file first.");
-      return;
-    }
-
-    // Check if filters are selected
     if (!areFiltersSelected()) return;
     
-    setIsUploading(true);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    processExcelFile(file);
+  };
+
+  // Save data to server
+  const handleFileSave = async () => {
+    if (!hasData) return;
     
+    setIsUploading(true);
     try {
-      await addStudentsSheet(uploadedData).unwrap();
-      setIsUploading(false);
-      showStatusMessage("success", "Data saved successfully to the database!");
+      // Prepare students data with all required fields
+      const studentsData = uploadedData.map(student => ({
+        name: student.name || '',
+        email: student.email || '',
+        password: student.password || 'password123',
+        passwordConfirm: student.passwordConfirm || 'password123',
+        department: student.department || selectedDepartment || '',
+        level: student.level || selectedLevel || ''
+      }));
+      
+      console.log("Students data being sent:", studentsData);
+      
+      // Get token for authentication
+      const token = localStorage.getItem("token")?.replace(/"/g, "");
+      
+      // Try first with direct array approach
+      try {
+        console.log("Trying direct array approach...");
+        const response = await fetch(
+          "https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+            body: JSON.stringify(studentsData)
+          }
+        );
+        
+        console.log("Response status:", response.status);
+        
+        // Check if the response has content
+        const contentType = response.headers.get("content-type");
+        let result = {};
+        
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            const text = await response.text();
+            console.log("Raw response text:", text);
+            if (text) {
+              result = JSON.parse(text);
+            }
+          } catch (parseError) {
+            console.error("Error parsing JSON response:", parseError);
+            result = { message: "Failed to parse server response" };
+          }
+        }
+        
+        if (response.ok) {
+        showStatusMessage("success", "Data saved successfully!");
+        dispatch(setData([])); // Clear the data
+        setFileName("");
+        setFileSize("");
+          return;
+        } else {
+          console.error("First attempt failed, trying fallback...");
+        }
+      } catch (firstAttemptError) {
+        console.error("Error in first attempt:", firstAttemptError);
+      }
+      
+      // Fallback: try with one student at a time if bulk upload fails
+      try {
+        console.log("Trying fallback approach (one by one)...");
+        let successCount = 0;
+        
+        for (const student of studentsData) {
+          try {
+            console.log(`Uploading student: ${student.name}`);
+            const response = await fetch(
+              "https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": token ? `Bearer ${token}` : "",
+                },
+                body: JSON.stringify([student]) // Send as array with single student
+              }
+            );
+            
+            if (response.ok) {
+              successCount++;
+            }
+          } catch (err) {
+            console.error(`Failed to upload student ${student.name}:`, err);
+          }
+        }
+        
+        if (successCount > 0) {
+          showStatusMessage("success", `Successfully uploaded ${successCount} out of ${studentsData.length} students`);
+          dispatch(setData([])); // Clear the data
+          setFileName("");
+          setFileSize("");
+      } else {
+          throw new Error("Failed to upload any students");
+        }
+      } catch (fallbackError) {
+        console.error("Fallback attempt also failed:", fallbackError);
+        showStatusMessage("error", "All upload attempts failed. Please try again later.");
+      }
     } catch (error) {
       console.error("Error saving data:", error);
+      showStatusMessage("error", "An unexpected error occurred: " + (error.message || "Please try again"));
+    } finally {
       setIsUploading(false);
-      showStatusMessage("error", "Failed to save data to the database. Please try again.");
     }
   };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { 
-        when: "beforeChildren",
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    }
-  };
-
-  const filterItemVariants = {
-    hidden: { scale: 0.8, opacity: 0 },
-    visible: { 
-      scale: 1, 
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300 }
-    }
-  };
-
-  // Render components for different upload states
-  const renderUploadAreaContent = () => {
-    if (isUploading) {
-      return (
-        <div className="flex flex-col items-center">
-          <motion.div
-            className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mb-4"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
-          <p className="text-gray-300 text-lg font-medium">Processing file...</p>
-        </div>
-      );
-    } 
-    
-    if (uploadStatus === 'success') {
-      return (
-        <div className="flex flex-col items-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <IoCheckmarkCircle className="text-green-500 text-6xl mb-4" />
-          </motion.div>
-          <p className="text-green-400 text-lg font-medium">{statusMessage || "File uploaded successfully!"}</p>
-          {fileName && (
-            <p className="text-gray-400 mt-2">{fileName} ({fileSize})</p>
-          )}
-        </div>
-      );
-    } 
-    
-    if (uploadStatus === 'error') {
-      return (
-        <div className="flex flex-col items-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <IoWarning className="text-red-500 text-6xl mb-4" />
-          </motion.div>
-          <p className="text-red-400 text-lg font-medium">{statusMessage || "Error uploading file"}</p>
-          <p className="text-gray-400 mt-2">Please try again with a valid Excel file</p>
-        </div>
-      );
-    } 
-    
-    if (uploadStatus === 'warning') {
-      return (
-        <div className="flex flex-col items-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <IoInformationCircle className="text-amber-500 text-6xl mb-4" />
-          </motion.div>
-          <p className="text-amber-400 text-lg font-medium">{statusMessage}</p>
-        </div>
-      );
-    }
-    
-    return (
-      <>
-        <IoCloudUpload className="text-blue-400 text-6xl mb-4" />
-        <h3 className="text-xl font-semibold text-white mb-2">
-          {fileName ? fileName : "Drag & Drop Excel File Here"}
-        </h3>
-        {fileSize && <p className="text-gray-400 mb-4">File size: {fileSize}</p>}
-        <p className="text-gray-400 mb-6">
-          or
-        </p>
-        <motion.button
-          onClick={handleUploadClick}
-          className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 shadow-md shadow-blue-500/20"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <FaUpload />
-          Browse Files
-        </motion.button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept=".xlsx, .xls"
-          className="hidden"
-        />
-        <p className="text-gray-500 text-sm mt-4">
-          Supported formats: .xlsx, .xls
-        </p>
-      </>
-    );
-  };
-
-  if (!isRendered) {
-    return null;
-  }
 
   return (
-    <motion.div 
-      className="p-6 w-full"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Header */}
-      <motion.div 
-        className="mb-8 flex items-center"
-        variants={itemVariants}
+    <div className="p-4 sm:p-6">
+      {/* Status Message */}
+      <StatusMessage 
+        uploadStatus={uploadStatus} 
+        statusMessage={statusMessage} 
+      />
+      
+      {/* Back button */}
+      <motion.button
+        onClick={() => router.push('/dashboard/admin/document')}
+        className="mb-6 flex items-center text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <motion.button
-          onClick={() => router.push('/dashboard/admin/document')}
-          className="mr-4 p-2 rounded-full bg-[#1a1f2e] hover:bg-[#2a2f3e] transition-colors"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <FaArrowLeft className="text-gray-400" />
-        </motion.button>
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Upload Excel Sheet
-          </h1>
-          <p className="text-gray-400">
-            Upload student data via Excel spreadsheets for batch processing
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Status Messages */}
-      <AnimatePresence>
-        {uploadStatus && (
-          <motion.div 
-            className={`mb-6 ${
-              uploadStatus === "success" 
-                ? "bg-green-500/20 border-green-500/30 text-green-200" 
-                : "bg-red-500/20 border-red-500/30 text-red-200"
-            } border px-4 py-3 rounded-lg flex items-center gap-3`}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          >
-            {uploadStatus === "success" ? (
-              <IoCheckmarkCircle className="text-green-500 text-xl flex-shrink-0" />
-            ) : (
-              <IoWarning className="text-red-500 text-xl flex-shrink-0" />
-            )}
-            <div>
-              <p className="font-medium">{uploadStatus === "success" ? "Success" : "Error"}</p>
-              <p className="text-sm">{statusMessage}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Validation Errors */}
-      <AnimatePresence>
-        {validationErrors.length > 0 && (
-          <motion.div 
-            className="mb-6 bg-red-500/20 border border-red-500/30 text-red-200 px-4 py-3 rounded-lg"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <IoWarning className="text-red-500 text-xl flex-shrink-0" />
-              <p className="font-medium">Validation Errors</p>
-            </div>
-            <ul className="list-disc pl-10 space-y-1 text-sm">
-              {validationErrors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Column - Upload Area */}
-        <motion.div 
-          className="w-full lg:w-3/5"
-          variants={itemVariants}
-        >
-          <motion.div
-            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center min-h-[300px] transition-all ${
-              isDragging 
-                ? 'border-blue-500 bg-blue-500/10' 
-                : uploadStatus === 'success'
-                ? 'border-green-500 bg-green-500/10'
-                : uploadStatus === 'error'
-                ? 'border-red-500 bg-red-500/10'
-                : uploadStatus === 'warning'
-                ? 'border-amber-500 bg-amber-500/10'
-                : 'border-gray-600 hover:border-blue-500/50 hover:bg-[#1a1f2e]'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            variants={itemVariants}
-            animate={
-              isDragging 
-                ? { scale: 1.02, borderColor: "#3b82f6" } 
-                : uploadStatus === 'success'
-                ? { scale: 1, borderColor: "#22c55e" }
-                : uploadStatus === 'error'
-                ? { scale: 1, borderColor: "#ef4444" }
-                : uploadStatus === 'warning'
-                ? { scale: 1, borderColor: "#f59e0b" }
-                : { scale: 1, borderColor: "#4b5563" }
-            }
-          >
-            {renderUploadAreaContent()}
-          </motion.div>
-
-          {/* File Preview */}
-          {hasData && (
-            <motion.div
-              className="mt-8 bg-[#1a1f2e] rounded-xl border border-[#2a2f3e] overflow-hidden"
-              variants={itemVariants}
-            >
-              <div className="p-4 border-b border-[#2a2f3e] flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <FaTable className="text-blue-400" />
-                  <h3 className="text-white font-medium">Data Preview</h3>
-                </div>
-                <div className="text-gray-400 text-sm">
-                  {uploadedData.length} rows
-                </div>
-              </div>
-              <div className="p-4 overflow-x-auto max-h-[300px] custom-scrollbar">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-[#2a2f3e]">
-                      {Object.keys(uploadedData[0]).map((header, index) => (
-                        <th key={index} className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {uploadedData.slice(0, 5).map((row, rowIndex) => (
-                      <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-[#1a1f2e]' : 'bg-[#232738]'}>
-                        {Object.values(row).map((cell, cellIndex) => (
-                          <td key={cellIndex} className="px-4 py-3 text-sm text-gray-300">
-                            {cell?.toString() || ''}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                    {uploadedData.length > 5 && (
-                      <tr>
-                        <td colSpan={Object.keys(uploadedData[0]).length} className="px-4 py-3 text-center text-sm text-gray-400">
-                          + {uploadedData.length - 5} more rows
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* Right Column - Filters and Actions */}
-        <motion.div 
-          className="w-full lg:w-2/5 space-y-6"
-          variants={itemVariants}
-        >
-          {/* Filters Section */}
-          <motion.div 
-            className="bg-[#1a1f2e] rounded-xl border border-[#2a2f3e] p-6"
-            variants={itemVariants}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <FaFilter className="text-blue-400" />
-              <h3 className="text-white font-semibold">Data Filters</h3>
-            </div>
-
-            {/* Level Filter */}
-            <div className="mb-6">
-              <label className="block text-gray-400 mb-3 text-sm">
-                Select Level
-              </label>
-              <div className="grid grid-cols-4 gap-3">
-                {LEVELS.map((level, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setSelectedLevel(level)}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      selectedLevel === level
-                        ? "bg-blue-600 text-white shadow-lg"
-                        : "bg-[#232738] text-blue-300 hover:bg-[#2a2f3e]"
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Level {level}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-
-            {/* Department Filter */}
-            <div>
-              <label className="block text-gray-400 mb-3 text-sm">
-                Select Department
-              </label>
-              <div className="grid grid-cols-4 gap-3">
-                {DEPARTMENTS.map((dept) => (
-                  <motion.button
-                    key={dept}
-                    onClick={() => setSelectedDepartment(dept)}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      selectedDepartment === dept
-                        ? "bg-purple-600 text-white shadow-lg"
-                        : "bg-[#232738] text-purple-300 hover:bg-[#2a2f3e]"
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {dept}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Action Buttons */}
-          <motion.div 
-            className="flex flex-col gap-4"
-            variants={itemVariants}
-          >
-            <motion.button
-              onClick={handleFileSave}
-              className={`w-full py-3 px-4 ${
-                hasData 
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white' 
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              } rounded-lg flex items-center justify-center gap-3 font-medium shadow-md ${hasData ? 'shadow-green-500/20' : ''}`}
-              whileHover={hasData ? { scale: 1.02 } : {}}
-              whileTap={hasData ? { scale: 0.98 } : {}}
-              disabled={isUploading || !hasData}
-            >
-              {isUploading ? (
-                <motion.div
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-              ) : (
-                <FaSave className={hasData ? "" : "text-gray-500"} />
-              )}
-              {isUploading ? 'Saving...' : 'Save Excel Data'}
-            </motion.button>
-          </motion.div>
-
-          {/* Tips Section */}
-          <motion.div 
-            className="bg-[#1a1f2e] rounded-xl border border-[#2a2f3e] p-6"
-            variants={itemVariants}
-          >
-            <h3 className="text-white font-semibold mb-4">Tips</h3>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex items-start gap-2">
-                <div className="min-w-[20px] mt-1">•</div>
-                <p>Make sure your Excel file has the correct column headers</p>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="min-w-[20px] mt-1">•</div>
-                <p>Required columns: name, email, department, level, password</p>
-              </li>
-              <li className="flex items-start gap-2">
-                <div className="min-w-[20px] mt-1">•</div>
-                <p>Select level and department before saving</p>
-              </li>
-            </ul>
-          </motion.div>
-        </motion.div>
-      </div>
-    </motion.div>
+        <FaArrowLeft className="mr-2" /> Back to Document Management
+      </motion.button>
+      
+      {/* Page Header */}
+      <PageHeader 
+        title="Upload Student Data" 
+        subtitle="Upload and process student information from Excel files"
+      />
+      
+      {/* Level & Department Filter */}
+      <LevelDepartmentFilter 
+        selectedLevel={selectedLevel}
+        setSelectedLevel={setSelectedLevel}
+        selectedDepartment={selectedDepartment}
+        setSelectedDepartment={setSelectedDepartment}
+      />
+      
+      {/* File Upload Area */}
+      <FileUploadArea 
+        isDragging={isDragging}
+        handleDragOver={handleDragOver}
+        handleDragLeave={handleDragLeave}
+        handleDrop={handleDrop}
+        handleUploadClick={handleUploadClick}
+        fileInputRef={fileInputRef}
+        handleFileUpload={handleFileUpload}
+        isUploading={isUploading}
+      />
+      
+      {/* File Preview */}
+      <FilePreview 
+        hasData={hasData}
+        fileName={fileName}
+        fileSize={fileSize}
+        uploadedData={uploadedData}
+        validationErrors={validationErrors}
+        handleFileSave={handleFileSave}
+        isUploading={isUploading}
+      />
+    </div>
   );
 };
 

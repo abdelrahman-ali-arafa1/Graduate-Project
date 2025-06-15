@@ -41,7 +41,7 @@ const AdminLineChart = ({ data }) => {
           <p className="text-white font-medium text-sm mb-2">{label}</p>
           <div className="space-y-1">
             {payload.map((entry, index) => (
-              <div key={index} className="flex items-center gap-2">
+              <div key={`payload-${entry.name}-${index}`} className="flex items-center gap-2">
                 <div 
                   className="w-3 h-3 rounded-full" 
                   style={{ backgroundColor: entry.color }}

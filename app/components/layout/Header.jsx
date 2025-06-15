@@ -9,8 +9,11 @@ import { useTheme } from '../providers/ThemeProvider';
 import { useLanguage } from '../providers/LanguageProvider';
 import { motion } from 'framer-motion';
 import { IoMdMenu, IoMdClose } from 'react-icons/io';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, usePathname } from 'next/navigation';
+import { logout as authLogout } from '@/app/store/slices/authReducer';
+import { clearUserRole } from '@/app/store/slices/userRole';
+import { authApiSlice } from '@/app/store/features/authApiSlice';
 
 export default function Header({ showToggle = true }) {
   const { theme } = useTheme();
@@ -20,6 +23,7 @@ export default function Header({ showToggle = true }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
   
   // التحقق من حالة تسجيل الدخول
   useEffect(() => {
@@ -58,10 +62,21 @@ export default function Header({ showToggle = true }) {
   // تسجيل الخروج
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
+      // Clear Redux state for authentication and user role
+      dispatch(authLogout());
+      dispatch(clearUserRole());
+      
+      // Clear RTK Query cache
+      dispatch(authApiSlice.util.resetApiState());
+      
+      // Also clear local storage items (redundant but good for robustness)
       localStorage.removeItem('token');
       localStorage.removeItem('isAdmin');
       localStorage.removeItem('isInstructor');
       localStorage.removeItem('sessionId');
+      localStorage.removeItem('user'); // Ensure user object is also cleared
+      localStorage.removeItem('instructorCourses'); // Ensure instructor courses are cleared
+
       setIsLoggedIn(false);
       router.push('/auth/login');
     }

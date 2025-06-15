@@ -214,7 +214,7 @@ export const useAddInstructor = () => {
       // Reset form after success
       setTimeout(() => {
         setSuccessNotification(false);
-        router.push("/dashboard/admin");
+        router.push("/dashboard/admin/instructors");
       }, 2000);
     } catch (error) {
       console.error("Failed to add user:", error);
@@ -257,6 +257,7 @@ export const useAddInstructor = () => {
     handlePrevStep,
     handleAddUser,
     clearFilters,
+    setSelectedDepartment,
     setSelectedLevel,
     
     // Constants

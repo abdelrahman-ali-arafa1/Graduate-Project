@@ -2,16 +2,19 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { MdOutlineDashboard, MdPeopleAlt, MdSubject } from "react-icons/md";
-import { FaFolder, FaClipboardList, FaBars, FaTimes, FaArrowUp, FaChartBar, FaUserCircle, FaSignOutAlt, FaBookReader, FaUsers, FaFileAlt, FaHome, FaCog, FaChevronLeft, FaChevronRight, FaUserShield, FaChalkboardTeacher, FaUserGraduate, FaFileMedicalAlt, FaTasks, FaQrcode, FaCommentDots } from "react-icons/fa";
+import { FaFolder, FaClipboardList, FaBars, FaTimes, FaArrowUp, FaChartBar, FaUserCircle, FaSignOutAlt, FaBookReader, FaUsers, FaFileAlt, FaHome, FaCog, FaChevronLeft, FaChevronRight, FaUserShield, FaChalkboardTeacher, FaUserGraduate, FaFileMedicalAlt, FaTasks, FaQrcode, FaCommentDots, FaFingerprint } from "react-icons/fa";
 import { SlCalender } from "react-icons/sl";
 import { FaMessage } from "react-icons/fa6";
 import { IoLogOut } from "react-icons/io5";
 import { BsClipboard2Check } from "react-icons/bs";
 import { useDispatch, useSelector } from "react-redux";
 import { setInstructorRole } from "@/app/store/slices/userRole";
+import { clearUserRole } from "@/app/store/slices/userRole";
+import { logout as authLogout } from "@/app/store/slices/authReducer";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { hydrate } from "@/app/store/slices/selectedCourseSlice";
+import { authApiSlice } from "@/app/store/features/authApiSlice";
 
 const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
   const router = useRouter();
@@ -24,11 +27,12 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
   // Define sidebar items first so we can use them in the effect
   const sidebarItems = userRole ? [
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard/admin/home" },
-    { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/admin" },
+    { icon: <MdPeopleAlt />, label: "Instructors", href: "/dashboard/admin/instructors" },
     { icon: <FaFolder />, label: "Documents", href: "/dashboard/admin/document" },
-    { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/admin/studentsEdit" },
+    { icon: <FaUserGraduate />, label: "Edit Students", href: "/dashboard/admin/document/studentsEdit" },
     { icon: <FaArrowUp />, label: "My Grade", href: "/dashboard/admin/myGrade" },
     { icon: <FaFileMedicalAlt />, label: "Students Apologies", href: "/dashboard/admin/studentsApologies" },
+    { icon: <FaFingerprint />, label: "Fingerprint Registration", href: "/dashboard/admin/fingerprintRegistration" },
   ] : [
     { icon: <MdOutlineDashboard />, label: "Dashboard", href: "/dashboard" },
     { icon: <MdSubject />, label: "Subjects", href: "/dashboard/doctor/subjects" },
@@ -68,12 +72,21 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
 
   // handle logout 
   const handleLogout = () => {
-    // مسح جميع بيانات المستخدم من التخزين المحلي
+    // Clear Redux state for authentication and user role
+    dispatch(authLogout());
+    dispatch(clearUserRole());
+
+    // Clear RTK Query cache
+    dispatch(authApiSlice.util.resetApiState());
+
+    // مسح جميع بيانات المستخدم من التخزين المحلي (redundant but good for robustness)
     localStorage.removeItem("token");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("isInstructor");
     localStorage.removeItem("sessionId");
     localStorage.removeItem("selectedCourse");
+    localStorage.removeItem("user"); // Ensure user object is also cleared
+    localStorage.removeItem("instructorCourses"); // Ensure instructor courses are cleared
     
     // توجيه المستخدم إلى صفحة تسجيل الدخول
     router.push("/auth/login");
@@ -150,7 +163,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
           <div className="flex-1 flex flex-col gap-2">
             {sidebarItems.map((item, index) => (
               <Link
-                key={index}
+                key={item.href}
                 href={item.href}
                 onClick={() => handleLinkClick(item.label)}
                 className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 

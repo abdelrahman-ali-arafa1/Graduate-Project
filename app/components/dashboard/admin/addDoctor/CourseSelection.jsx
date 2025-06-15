@@ -45,9 +45,9 @@ const CourseSelection = ({
           <div className="form-group">
             <label className="block text-gray-300 mb-2 font-medium">Level</label>
             <div className="flex flex-wrap gap-2">
-              {levels.map((level) => (
+              {levels.map((level, index) => (
                 <motion.button
-                  key={level}
+                  key={level ? `level-select-${level}` : `level-select-${index}`}
                   onClick={() => setSelectedLevel(prev => prev === level ? "" : level)}
                   className={`px-4 py-2 rounded-lg border ${
                     selectedLevel === level
@@ -70,9 +70,9 @@ const CourseSelection = ({
           <div className="form-group">
             <label className="block text-gray-300 mb-2 font-medium">Department</label>
             <div className="flex flex-wrap gap-2">
-              {departments.map((dept) => (
+              {departments.map((dept, index) => (
                 <motion.button
-                  key={dept}
+                  key={dept ? `dept-select-${dept}` : `dept-select-${index}`}
                   onClick={() => setSelectedDepartment(prev => prev === dept ? "" : dept)}
                   className={`px-4 py-2 rounded-lg border ${
                     selectedDepartment === dept
@@ -119,7 +119,7 @@ const CourseSelection = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {filteredCourses.map((course, index) => (
                   <motion.button
-                    key={course._id}
+                    key={course._id || `course-select-${index}`}
                     onClick={() => handleCourseSelect(course._id)}
                     className={`p-4 rounded-lg border ${
                       newUser.lecturerCourses.includes(course._id)

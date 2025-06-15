@@ -28,7 +28,7 @@ export default function Welcome() {
       {/* دوائر زخرفية للخلفية */}
       {decorativeCircles.map((circle, index) => (
         <div
-          key={index}
+          key={`circle-${circle.size}-${index}`}
           className="decorative-circle absolute rounded-full bg-primary animate-float"
           style={{
             width: circle.size,

@@ -31,9 +31,9 @@ const ApologiesList = ({
       animate="visible"
     >
       {filteredApologies.length > 0 ? (
-        filteredApologies.map((apology) => (
+        filteredApologies.map((apology, index) => (
           <ApologyCard
-            key={apology._id}
+            key={apology._id || `apology-card-${index}`}
             apology={apology}
             getStatusColor={getStatusColor}
             getStatusIcon={getStatusIcon}

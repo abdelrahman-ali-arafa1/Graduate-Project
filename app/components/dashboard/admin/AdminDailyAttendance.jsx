@@ -48,7 +48,7 @@ const AdminDailyAttendance = ({ data }) => {
               
               return (
                 <tr 
-                  key={index} 
+                  key={day.date || `daily-attendance-row-${index}`} 
                   className={`border-b border-[#2a2f3e] hover:bg-[#2a2f3e]/50 transition-colors ${
                     index % 2 === 0 ? 'bg-[#1e2233]/30' : ''
                   }`}

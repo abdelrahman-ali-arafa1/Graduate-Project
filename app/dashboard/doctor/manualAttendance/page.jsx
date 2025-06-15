@@ -19,11 +19,15 @@ const ManualAttendancePage = () => {
     sessionSettings,
     remainingTime,
     isCreatingSession,
+    attendanceData,
+    isAttendanceLoading,
     handleCreateSession,
     handleSessionSettingsChange,
     openSessionDialog,
     closeSessionDialog,
-    goToQrCodePage
+    goToQrCodePage,
+    handleUpdateAttendance,
+    isUpdatingAttendance
   } = useManualAttendance();
   
   // If no course is selected, show the NoCourse component
@@ -74,7 +78,14 @@ const ManualAttendancePage = () => {
         
         {/* Attendance Table */}
         {sessionId ? (
-          <AttendanceTable allowMarkAbsent={true} key={sessionId} />
+          <AttendanceTable 
+            allowMarkAbsent={true} 
+            key={sessionId || `attendance-table-${Date.now()}`}
+            attendanceData={attendanceData}
+            isAttendanceLoading={isAttendanceLoading}
+            handleUpdateAttendance={handleUpdateAttendance}
+            isUpdatingAttendance={isUpdatingAttendance}
+          />
         ) : (
           <div className="text-center p-4 sm:p-8 bg-[var(--secondary)] rounded-lg border border-[var(--border-color)]">
             <h3 className="text-lg sm:text-xl font-medium text-[var(--foreground)] mb-2">No Active Session</h3>

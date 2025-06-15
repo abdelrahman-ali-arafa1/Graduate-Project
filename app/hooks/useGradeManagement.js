@@ -13,6 +13,7 @@ export const useGradeManagement = () => {
   const [status, setStatus] = useState("");
   const [upgrading, setUpgrading] = useState(false);
   const [allStudents, setAllStudents] = useState([]); // Save all students data
+  const [alphaFilter, setAlphaFilter] = useState(""); // فلتر أبجدي
 
   // RTK Query hooks
   const { 
@@ -51,60 +52,49 @@ export const useGradeManagement = () => {
     if (!allStudents.length) {
       setFilteredStudents([]);
       setDisplayedStudents([]);
+      setSelectedStudents([]);
+      setSelectAll(false);
       return;
     }
-
-    console.log("Filtering students by level:", selectedLevel, "and departments:", selectedDepartments);
-    
-    // Filter students by level first
-    let filtered = allStudents.filter(student => 
-      student.level === selectedLevel
-    );
-    
-    console.log("After level filter:", filtered.length, "students");
-    
-    // Then filter by departments if selected
+    let filtered = allStudents.filter(student => student.level === selectedLevel);
     if (selectedDepartments.length > 0) {
-      filtered = filtered.filter(student => 
-        selectedDepartments.includes(student.department?.toUpperCase())
-      );
-      console.log("After department filter:", filtered.length, "students");
+      filtered = filtered.filter(student => selectedDepartments.includes(student.department?.toUpperCase()));
     }
-    
+    // فلترة أبجدية
+    if (alphaFilter) {
+      filtered = filtered.filter(student => (student.name || "").toUpperCase().startsWith(alphaFilter));
+    }
     setFilteredStudents(filtered);
     setDisplayedStudents(filtered);
-    
-    // Reset selection when filters change
-    setSelectedStudents([]);
-    setSelectAll(false);
-  }, [allStudents, selectedLevel, selectedDepartments]);
+    setSelectedStudents(filtered.map(student => student._id));
+    setSelectAll(true);
+  }, [allStudents, selectedLevel, selectedDepartments, alphaFilter]);
 
   // Filter students based on search query
   useEffect(() => {
     if (!filteredStudents.length) return;
-
     if (!searchQuery.trim()) {
       setDisplayedStudents(filteredStudents);
+      // إذا كان selectAll مفعل، حدد كل الطلاب الظاهرين
+      if (selectAll) setSelectedStudents(filteredStudents.map(s => s._id));
       return;
     }
-
     const query = searchQuery.toLowerCase().trim();
     const results = filteredStudents.filter(student => 
       (student.name?.toLowerCase().includes(query)) ||
       (student.email?.toLowerCase().includes(query)) ||
       (student._id?.toLowerCase().includes(query))
     );
-    
-    console.log("Search results:", results.length, "students");
     setDisplayedStudents(results);
-  }, [searchQuery, filteredStudents]);
+    // إذا كان selectAll مفعل، حدد كل الطلاب الظاهرين
+    if (selectAll) setSelectedStudents(results.map(s => s._id));
+  }, [searchQuery, filteredStudents, selectAll]);
 
   // Handle selecting all students
   useEffect(() => {
     if (selectAll) {
       setSelectedStudents(displayedStudents.map(student => student._id));
-    } else if (selectedStudents.length === displayedStudents.length && displayedStudents.length > 0) {
-      // If we just unchecked "Select All", clear selections
+    } else {
       setSelectedStudents([]);
     }
   }, [selectAll, displayedStudents]);
@@ -220,6 +210,11 @@ export const useGradeManagement = () => {
     setDisplayedStudents(filteredStudents);
   }, [filteredStudents]);
 
+  // إعادة ضبط الفلتر الأبجدي عند تغيير الفلاتر أو البحث
+  useEffect(() => {
+    setAlphaFilter("");
+  }, [selectedLevel, selectedDepartments, searchQuery]);
+
   return {
     // State
     selectedLevel,
@@ -249,6 +244,8 @@ export const useGradeManagement = () => {
     
     // Constants
     levels: LEVELS,
-    departments: DEPARTMENTS
+    departments: DEPARTMENTS,
+    setAlphaFilter, // دالة لتغيير الفلتر الأبجدي
+    alphaFilter, // قيمة الفلتر الأبجدي الحالية
   };
 }; 

@@ -14,6 +14,7 @@ const MyGradePage = () => {
     searchQuery,
     selectAll,
     status,
+    alphaFilter,
     
     // Loading states
     loading,
@@ -27,6 +28,7 @@ const MyGradePage = () => {
     toggleSelectAll,
     handleUpgradeStudents,
     handleClearFilters,
+    setAlphaFilter,
     
     // Utilities
     getNextLevel,
@@ -89,9 +91,9 @@ const MyGradePage = () => {
           <div className="flex flex-col items-center w-full md:w-1/2">
             <div className="mb-2 text-base font-bold text-green-400 tracking-wide text-center">Current Level</div>
             <div className="flex flex-row gap-3 justify-center">
-              {levels.map((level) => (
+              {levels.map((level, index) => (
                 <motion.button
-                  key={level}
+                  key={level || `level-btn-${index}`}
                   className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border border-transparent text-sm focus:outline-none ${selectedLevel === level ? "bg-green-500 text-white shadow-lg scale-105" : "bg-[#181c2a] text-gray-200 hover:bg-green-900/40 hover:border-green-500"}`}
                   onClick={() => setSelectedLevel(level)}
                   whileHover={{ scale: 1.07 }}
@@ -105,9 +107,9 @@ const MyGradePage = () => {
           <div className="flex flex-col items-center w-full md:w-1/2">
             <div className="mb-2 text-base font-bold text-blue-400 tracking-wide text-center">Department (Multi-select)</div>
             <div className="flex flex-row gap-3 justify-center flex-wrap">
-              {departments.map((dept) => (
+              {departments.map((dept, index) => (
                 <motion.button
-                  key={dept}
+                  key={dept || `dept-btn-${index}`}
                   className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border border-transparent text-sm focus:outline-none ${selectedDepartments.includes(dept) ? "bg-blue-500 text-white shadow-lg scale-105" : "bg-[#181c2a] text-gray-200 hover:bg-blue-900/40 hover:border-blue-500"}`}
                   onClick={() => toggleDepartment(dept)}
                   whileHover={{ scale: 1.07 }}
@@ -152,11 +154,12 @@ const MyGradePage = () => {
               <button
                 onClick={handleUpgradeStudents}
                 disabled={upgrading || selectedStudents.length === 0}
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-                  selectedStudents.length > 0
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors shadow-lg 
+                  ${selectedStudents.length > 0
                     ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-gray-600 text-gray-300 cursor-not-allowed"
-                }`}
+                    : "bg-gray-600 text-gray-300 cursor-not-allowed"}
+                `}
+                title={selectedStudents.length === 0 ? "حدد طلاب للترقية" : "Upgrade selected students"}
               >
                 {upgrading ? (
                   <>
@@ -214,14 +217,45 @@ const MyGradePage = () => {
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`mb-4 p-3 rounded-lg ${
-                status.includes("Successfully") 
+              className={`mb-4 p-3 rounded-lg text-center font-bold shadow 
+                ${status.includes("Successfully") 
                   ? "bg-green-900/30 text-green-400 border border-green-800/50" 
-                  : "bg-red-900/30 text-red-400 border border-red-800/50"
-              }`}
+                  : "bg-red-900/30 text-red-400 border border-red-800/50"}`}
             >
               {status}
             </motion.div>
+          )}
+
+          {selectedLevel && selectedDepartments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="bg-green-700/80 text-white px-3 py-1 rounded-full text-xs font-bold">Level {selectedLevel}</span>
+              {selectedDepartments.map((dept, index) => (
+                <span key={dept || `dept-filter-${index}`} className="bg-blue-700/80 text-white px-3 py-1 rounded-full text-xs font-bold">{dept}</span>
+              ))}
+            </div>
+          )}
+
+          {selectedLevel && selectedDepartments.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-4">
+              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((char, index) => (
+                <button
+                  key={char || `char-filter-${index}`}
+                  onClick={() => setAlphaFilter(char)}
+                  className={`w-7 h-7 rounded text-xs font-bold flex items-center justify-center transition-all
+                    ${alphaFilter === char ? "bg-blue-500 text-white shadow" : "bg-[#232738] text-gray-400 hover:bg-blue-900/40 hover:text-blue-300"}`}
+                >
+                  {char}
+                </button>
+              ))}
+              {alphaFilter && (
+                <button
+                  onClick={() => setAlphaFilter("")}
+                  className="ml-2 px-2 py-1 rounded bg-red-700 text-white text-xs font-bold"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           )}
 
           {loading ? (
@@ -243,36 +277,31 @@ const MyGradePage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence>
-                {filteredStudents.map((student) => (
+                {filteredStudents.map((student, index) => {
+                  const isSelected = selectedStudents.includes(student._id);
+                  return (
                   <motion.div
-                    key={student._id}
+                      key={student._id || `student-card-${index}`}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className={`relative bg-[#1a1f2e] border ${
-                      selectedStudents.includes(student._id) 
-                        ? "border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
-                        : "border-[#2a2f3e]"
-                    } rounded-xl p-5 hover:bg-[#1a1f2e]/80 transition-all cursor-pointer`}
+                      className={`relative rounded-xl p-5 cursor-pointer transition-all shadow-lg bg-[#1a1f2e] 
+                        ${isSelected ? "border-2 border-green-500" : "border-2 border-red-500"}`}
                     onClick={() => toggleStudentSelection(student._id)}
                   >
                     <div className="absolute top-4 right-4">
-                      <div className={`w-5 h-5 rounded-full ${
-                        selectedStudents.includes(student._id)
-                          ? "bg-blue-500"
-                          : "bg-[#2a2f3e]"
-                      } flex items-center justify-center`}>
-                        {selectedStudents.includes(student._id) && (
-                          <FaCheckCircle className="text-white text-xs" />
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 
+                          ${isSelected ? "bg-green-500 border-green-700" : "bg-red-500 border-red-700"}`}>
+                          {isSelected ? (
+                            <FaCheckCircle className="text-white text-base" />
+                          ) : (
+                            <FaTimesCircle className="text-white text-base" />
                         )}
                       </div>
                     </div>
-
                     <div className="flex items-center gap-4">
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full ${
-                        student.name ? student.name.charAt(0).toLowerCase() : 'a'
-                      } bg-blue-900/50 flex items-center justify-center text-white font-bold`}>
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-white font-bold">
                         {student.name ? student.name.charAt(0).toUpperCase() : 'A'}
                       </div>
                       <div className="flex-grow">
@@ -280,7 +309,6 @@ const MyGradePage = () => {
                         <p className="text-gray-400 text-sm truncate">{student.email || "No email available"}</p>
                       </div>
                     </div>
-
                     <div className="mt-4 flex justify-between items-center text-xs">
                       <div className="bg-blue-900/30 px-2 py-1 rounded text-blue-400">
                         Level {student.level || selectedLevel}
@@ -290,7 +318,8 @@ const MyGradePage = () => {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}

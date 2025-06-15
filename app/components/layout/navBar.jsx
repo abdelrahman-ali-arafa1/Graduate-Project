@@ -4,13 +4,15 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import { IoIosNotifications, IoMdClose } from "react-icons/io";
 import { FaUser, FaSignOutAlt, FaBell, FaUserCircle, FaBars } from "react-icons/fa";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import ThemeToggle from "../ui/ThemeToggle";
 import LanguageToggle from "../ui/LanguageToggle";
 import { useLanguage } from "../providers/LanguageProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { logout as authLogout } from "@/app/store/slices/authReducer";
+import { authApiSlice } from "@/app/store/features/authApiSlice";
 
 // Dynamically import Avatar to prevent SSR hydration mismatch
 const Avatar = dynamic(() => import("@mui/material/Avatar"), { ssr: false });
@@ -23,6 +25,7 @@ export default function Navbar({ setSidebarOpen, sidebarOpen }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   // Track scroll position for navbar styling
   useEffect(() => {
@@ -73,8 +76,24 @@ export default function Navbar({ setSidebarOpen, sidebarOpen }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/auth/login");
+    if (typeof window !== 'undefined') {
+      // Clear Redux state for authentication
+      dispatch(authLogout());
+      
+      // Clear RTK Query cache
+      dispatch(authApiSlice.util.resetApiState());
+      
+      // Also clear local storage items (redundant but good for robustness)
+      localStorage.removeItem("token");
+      localStorage.removeItem("isAdmin");
+      localStorage.removeItem("isInstructor");
+      localStorage.removeItem("sessionId");
+      localStorage.removeItem("selectedCourse"); // Assuming this might be relevant for some user data
+      localStorage.removeItem("user"); // Ensure user object is also cleared
+      localStorage.removeItem("instructorCourses"); // Ensure instructor courses are cleared
+
+      router.push("/auth/login");
+    }
   };
 
   // Sample notifications

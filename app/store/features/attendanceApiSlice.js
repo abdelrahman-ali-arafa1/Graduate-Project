@@ -126,127 +126,40 @@ export const attendanceApiSlice = createApi({
 
     getManualAttendance: builder.query({
       query: (sessionId) => {
-        let courseId = null;
-        if (typeof window !== "undefined") {
-          const selectedCourse = JSON.parse(localStorage.getItem("selectedCourse") || "{}");
-          courseId = selectedCourse._id;
+        if (!sessionId) {
+          throw new Error("Session ID is required for manual attendance");
         }
-        
-        if (!courseId) {
-          throw new Error("Course ID is required");
-        }
-        
-        console.log("Using course ID for manual attendance:", courseId);
-        return {
-          url: `/showStudent/${courseId}`,
-          method: 'POST',
-        };
-      },
-      async onQueryStarted(sessionId, { dispatch, queryFulfilled }) {
-        try {
-          const { data: studentsData } = await queryFulfilled;
-          
-          if (sessionId) {
-            console.log("Fetching attendance status for session:", sessionId);
-            
-            const baseUrl = "https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode";
-            const token = localStorage.getItem("token")?.replace(/"/g, "");
-            
-            try {
-              const response = await fetch(`${baseUrl}/manualAttendace/${sessionId}`, {
-                headers: {
-                  Authorization: token ? `Bearer ${token}` : "",
-                }
-              });
-              
-              if (response.ok) {
-                const sessionAttendanceData = await response.json();
-                console.log("Session attendance data:", sessionAttendanceData);
-                
-                const attendanceMap = {};
-                
-                const attendanceItems = Array.isArray(sessionAttendanceData) 
-                  ? sessionAttendanceData 
-                  : [sessionAttendanceData];
-                
-                attendanceItems.forEach(item => {
-                  if (item && item.student && item.student._id) {
-                    attendanceMap[item.student._id] = item.attendanceStatus;
-                  }
-                });
-                
-                console.log("Attendance map:", attendanceMap);
-                
-                dispatch(
-                  attendanceApiSlice.util.updateQueryData(
-                    'getManualAttendance', 
-                    sessionId, 
-                    draft => {
-                      if (draft && draft.students) {
-                        draft.students = draft.students.map(student => {
-                          const studentId = student.student?._id;
-                          if (studentId && attendanceMap[studentId]) {
-                            return {
-                              ...student,
-                              studentAttendanc: attendanceMap[studentId]
-                            };
-                          }
-                          return student;
-                        });
-                      }
-                    }
-                  )
-                );
-              }
-            } catch (error) {
-              console.error("Error fetching session attendance:", error);
-            }
-          }
-        } catch (error) {
-          console.error("Error in onQueryStarted:", error);
-        }
+        return `/manualAttendace/${sessionId}`; // Use the correct API endpoint
       },
       providesTags: ["Attendance"],
       transformResponse: (response) => {
         console.log("Manual attendance API response:", response);
-        
-        if (!response || !response.students) {
-          console.warn("Empty response or no students in manual attendance");
-          return { students: [] };
+        // Ensure response.data is an array or return empty array
+        if (!response || !Array.isArray(response.data)) {
+          console.warn("Empty response or data is not an array in manual attendance");
+          return [];
         }
-        
-        try {
-          const students = response.students.map(student => {
-            return {
-              ...student,
-              studentAttendanc: student.attendanceStatus || "Not recorded"
-            };
-          });
-          
-          return { students };
-        } catch (error) {
-          console.error("Error transforming manual attendance data:", error);
-          return { students: [] };
-        }
+        return response.data; // Directly return the array of attendance records
       },
       transformErrorResponse: (response) => {
         console.error("Manual attendance API error:", JSON.stringify(response));
-        
-        if (Object.keys(response).length === 0) {
-          return { 
-            status: 'ERROR', 
-            message: 'An unknown error occurred while fetching attendance data' 
-          };
-        }
-        
         if (response.status) {
           return {
             status: response.status,
-            message: response.data?.message || 'Failed to fetch session attendance data'
+            message: response.data?.message || 'Failed to fetch manual attendance data'
           };
         }
         return { status: 'NETWORK_ERROR', message: 'Failed to connect to server' };
       },
+    }),
+
+    updateAttendanceStatus: builder.mutation({
+      query: ({ studentId, attendanceStatus }) => ({
+        url: `/attendances/${studentId}`,
+        method: "PUT",
+        body: { attendanceStatus },
+      }),
+      invalidatesTags: ["Attendance"],
     }),
 
     addStudentAttendance: builder.mutation({
@@ -283,22 +196,42 @@ export const attendanceApiSlice = createApi({
     }),
     
     addStudentsSheet: builder.mutation({
-      query: (users) => {
-        if (!users || !Array.isArray(users)) {
+      query: (data) => {
+        console.log("Raw data received for upload:", data);
+        
+        if (!data || !data.students || !Array.isArray(data.students)) {
           throw new Error("Student data is invalid");
         }
+        
+        // Ensure each student has the required fields
+        const students = data.students.map(student => ({
+          name: student.name || '',
+          email: student.email || '',
+          password: student.password || 'password123',
+          passwordConfirm: student.passwordConfirm || 'password123',
+          department: student.department || data.department || '',
+          level: student.level || data.level || ''
+        }));
+        
+        // Log request for debugging
+        console.log("Formatted students data:", students);
         
         return {
           url: `/studentInfo`,
           method: "POST",
-          body: users,
+          body: students,
           headers: {
             "Content-Type": "application/json",
           },
         };
       },
-      invalidatesTags: ["Attendance"],
+      transformResponse: (response) => {
+        console.log("API Success Response:", response);
+        return response;
+      },
       transformErrorResponse: (response) => {
+        console.error("Add Students API error:", JSON.stringify(response));
+        
         if (response.status) {
           return {
             status: response.status,
@@ -307,6 +240,7 @@ export const attendanceApiSlice = createApi({
         }
         return { status: 'NETWORK_ERROR', message: 'Failed to connect to server' };
       },
+      invalidatesTags: ["Attendance"],
     }),
   }),
 });
@@ -320,5 +254,6 @@ export const {
   useLazyGetAttendanceByDateQuery,
   useLazyGetAttendanceByCourseAndDateQuery,
   useMarkAttendanceMutation,
-  useDeleteAttendanceMutation
+  useDeleteAttendanceMutation,
+  useUpdateAttendanceStatusMutation
 } = attendanceApiSlice; 

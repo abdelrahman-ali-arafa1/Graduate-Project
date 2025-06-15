@@ -59,6 +59,18 @@ const userRoleSlice = createSlice({
         localStorage.setItem("instructorCourses", JSON.stringify(action.payload));
       }
     },
+    clearUserRole: (state) => {
+      state.isAdmin = false;
+      state.isInstructor = false;
+      state.token = "";
+      state.instructorCourses = [];
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("isAdmin");
+        localStorage.removeItem("isInstructor");
+        localStorage.removeItem("token");
+        localStorage.removeItem("instructorCourses");
+      }
+    },
   },
 });
 
@@ -69,5 +81,6 @@ export const {
   setToken,
   hydrateUserRole,
   setInstructorCourses,
+  clearUserRole,
 } = userRoleSlice.actions;
 export default userRoleSlice.reducer;

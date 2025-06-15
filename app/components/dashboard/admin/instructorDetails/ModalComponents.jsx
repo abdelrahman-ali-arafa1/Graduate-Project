@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaBook, FaTimesCircle, FaCheckCircle } from 'react-icons/fa';
 
 export const AddCourseModal = ({ 
   showModal, 
@@ -29,6 +29,32 @@ export const AddCourseModal = ({
         >
           &times;
         </button>
+        <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-center gap-3">
+          <FaBook className="text-blue-400 text-xl" /> Assign Course to Instructor
+        </h2>
+        <div className="relative mb-4">
+          <select
+            className="w-full p-3 pr-10 rounded-lg bg-[#1a1f2e] text-white border border-[#2a2f3e] focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
+            value={selectedCourseId}
+            onChange={(e) => onSelectCourse(e.target.value)}
+          >
+            <option value="">Select a course</option>
+            {availableCourses.map((course, index) => (
+              <option key={course._id || `course-modal-option-${index}`} value={course._id}>
+                {course.courseName} - {course.courseCode} ({course.department})
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <svg
+              className="fill-current h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z" />
+            </svg>
+          </div>
+        </div>
         <h2 className="text-lg font-bold text-white mb-4">Assign Course to Instructor</h2>
         <select
           className="w-full p-2 rounded-lg bg-[#1a1f2e] text-white mb-4 border border-[#2a2f3e]"
@@ -36,8 +62,8 @@ export const AddCourseModal = ({
           onChange={(e) => onSelectCourse(e.target.value)}
         >
           <option value="">Select a course</option>
-          {availableCourses.map(course => (
-            <option key={course._id} value={course._id}>
+          {availableCourses.map((course, index) => (
+            <option key={course._id || `course-modal-option-${index}`} value={course._id}>
               {course.courseName} - {course.courseCode} ({course.department})
             </option>
           ))}

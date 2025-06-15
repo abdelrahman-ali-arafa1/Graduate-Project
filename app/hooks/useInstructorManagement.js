@@ -4,11 +4,7 @@ import { useGetAllUsersQuery, useDeleteStaffUserMutation } from '@/app/store/fea
 export const useInstructorManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState("");
-
-  // ثابت لعدد الصفوف في كل صفحة
-  const ROWS_PER_PAGE = 5;
 
   // Use RTK Query to fetch users
   const { data: usersData, error: fetchError, isLoading, refetch } = useGetAllUsersQuery();
@@ -75,7 +71,7 @@ export const useInstructorManagement = () => {
         const deptB = b.lecturerDepartment || '';
         return sortConfig.direction === 'asc'
           ? deptA.localeCompare(deptB)
-          : deptB.localeCompare(deptA);
+          : deptB.localeCompare(roleA);
       } else if (sortConfig.key === 'courses') {
         return sortConfig.direction === 'asc'
           ? (a.lecturerCourses?.length || 0) - (b.lecturerCourses?.length || 0)
@@ -84,48 +80,6 @@ export const useInstructorManagement = () => {
       return 0;
     });
   }, [filteredLecturers, sortConfig]);
-
-  // Calculate total pages
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(sortedLecturers.length / ROWS_PER_PAGE));
-  }, [sortedLecturers.length]);
-
-  // Ensure current page is valid
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(Math.max(1, totalPages));
-    }
-  }, [totalPages, currentPage]);
-
-  // Pagination
-  const indexOfLastLecturer = useMemo(() => {
-    return currentPage * ROWS_PER_PAGE;
-  }, [currentPage]);
-  
-  const indexOfFirstLecturer = useMemo(() => {
-    return indexOfLastLecturer - ROWS_PER_PAGE;
-  }, [indexOfLastLecturer]);
-  
-  // Get current page data
-  const currentLecturers = useMemo(() => {
-    console.log(`Getting lecturers for page ${currentPage}, from ${indexOfFirstLecturer} to ${indexOfLastLecturer}`);
-    return sortedLecturers.slice(indexOfFirstLecturer, indexOfLastLecturer);
-  }, [sortedLecturers, indexOfFirstLecturer, indexOfLastLecturer, currentPage]);
-
-  // Pagination function
-  const paginate = useCallback((pageNumber) => {
-    console.log(`Paginating to page: ${pageNumber}, Total pages: ${totalPages}`);
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-      return true;
-    }
-    return false;
-  }, [totalPages]);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, roleFilter]);
 
   // Delete instructor
   const deleteInstructor = async (instructorId) => {
@@ -152,14 +106,7 @@ export const useInstructorManagement = () => {
     lecturers,
     filteredLecturers,
     sortedLecturers,
-    currentLecturers,
     uniqueRoles,
-    
-    // Pagination
-    currentPage,
-    totalPages,
-    indexOfFirstLecturer,
-    indexOfLastLecturer,
     
     // Status
     isLoading,
@@ -169,9 +116,7 @@ export const useInstructorManagement = () => {
     // Actions
     setSearchTerm,
     setRoleFilter,
-    setCurrentPage,
     requestSort,
-    paginate,
     deleteInstructor,
     getInstructorById,
     

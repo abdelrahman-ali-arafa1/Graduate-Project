@@ -235,6 +235,7 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
     })
       .then(res => res.json())
       .then(data => {
+        console.log("Raw student details API response (before enhancing):", data);
         if (data && data.data) {
           console.log("Student details with courses:", data.data);
           
@@ -320,43 +321,43 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
   // Handle save student with better error handling
   const handleSave = async (studentId) => {
     if (!studentId || !editData) return;
-    
     try {
-      // Only include fields that have actually changed
+      // Only include fields that have actually changed and are not empty
       const updateData = {};
-      
-      if (editData.name !== originalStudentData.name) {
+      if (editData.name && editData.name !== originalStudentData.name) {
         updateData.name = editData.name;
       }
-      
-      if (editData.email !== originalStudentData.email) {
+      if (editData.email && editData.email !== originalStudentData.email) {
         updateData.email = editData.email;
       }
-      
-      if (editData.level !== originalStudentData.level) {
+      if (editData.level && editData.level !== originalStudentData.level) {
         updateData.level = editData.level;
       }
-
-      // Don't update if nothing changed
+      if (editData.department && editData.department !== originalStudentData.department) {
+        updateData.department = editData.department;
+      }
+      // Allow password update if provided and not empty
+      if (editData.password && editData.password.trim() !== "") {
+        updateData.password = editData.password;
+      }
+      // If nothing changed, show status and exit
       if (Object.keys(updateData).length === 0) {
         setStatus("No changes were made.");
         cancelEdit();
         return;
       }
-
-      console.log("Updating student with data:", updateData);
-      
-      // Show loading status
+      // Filter out empty/undefined fields (defensive)
+      const filteredData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, v]) => v !== "" && v !== undefined)
+      );
+      console.log("Updating student with data:", filteredData);
       setStatus("Processing: Saving student data...");
-      
       if (updateStudent) {
         const result = await updateStudent({ 
           studentId, 
-          data: updateData
+          data: filteredData
         }).unwrap();
-        
         console.log("Update result:", result);
-        
         if (result.error) {
           throw new Error(result.error);
         }
@@ -371,50 +372,40 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
               "Content-Type": "application/json",
               "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify(updateData),
+            body: JSON.stringify(filteredData),
           }
         );
-        
         if (!res.ok) {
           const errorData = await res.json();
           throw new Error(errorData.message || "Failed to update student");
         }
       }
-      
-      // Set success status with clear message about what was updated
-      const updatedFields = Object.keys(updateData).join(", ");
+      const updatedFields = Object.keys(filteredData).join(", ");
       setStatus(`Success! Updated student ${updatedFields} successfully.`);
-      
       // Update local students array
       const updatedStudents = [...localStudents];
       const studentIndex = updatedStudents.findIndex(s => s._id === studentId);
       if (studentIndex !== -1) {
         updatedStudents[studentIndex] = { 
           ...updatedStudents[studentIndex], 
-          ...updateData 
+          ...filteredData 
         };
         setLocalStudents(updatedStudents);
       }
-      
       // Update filtered students array if it's in view
       const filteredIndex = localFilteredStudents.findIndex(s => s._id === studentId);
       if (filteredIndex !== -1) {
         const updatedFilteredStudents = [...localFilteredStudents];
         updatedFilteredStudents[filteredIndex] = {
           ...updatedFilteredStudents[filteredIndex],
-          ...updateData
+          ...filteredData
         };
         setLocalFilteredStudents(updatedFilteredStudents);
       }
-      
-      // Reset edit state
       cancelEdit();
-      
-      // Refresh data from server
-      if (refetchStudents) {
+      if (refetchStudents && selectedLevel && selectedDepartment) {
         await refetchStudents();
       }
-      
     } catch (err) {
       console.error("Error saving student:", err);
       setStatus(`Update failed: ${err.message || "Unknown error"}`);
@@ -461,7 +452,7 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
         setLocalStudents(localStudents.filter(s => s._id !== studentId));
         
         // Refresh data from server
-        if (refetchStudents) {
+        if (refetchStudents && selectedLevel && selectedDepartment) {
           refetchStudents();
         }
         
@@ -526,48 +517,48 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
       const courseName = getCourseNameById(selectedCourseId);
       setStatus(`Success! Course "${courseName}" added successfully.`);
       
-      // Fetch updated student data
-      fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/${selectedStudent._id}`, {
+      // Fetch updated student data to ensure the UI is fully consistent with backend
+      const response = await fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/${selectedStudent._id}`, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")?.replace(/"/g, "")}`
         }
-      })
-        .then(res => res.json())
-        .then(data => {
+      });
+      const data = await response.json();
+    
           if (data && data.data) {
-            // Update with the fresh data from the server
-            const updatedStudent = {
+        // Create a brand new object to ensure React detects the change and re-renders
+        const freshStudentData = {
               ...data.data,
-              courses: data.data.courses?.map(course => ({
+          courses: data.data.courses?.map(course => {
+            // Get additional course info
+            const courseInfo = courses.find(c => c._id === course._id);
+            return {
                 ...course,
-                name: course.courseName || getCourseNameById(course._id)
-              }))
+              ...(courseInfo || {}),
+              name: course.courseName || courseInfo?.courseName || getCourseNameById(course._id),
+              // Ensure code and department are included
+              code: course.code || courseInfo?.courseCode,
+              department: course.department || courseInfo?.department
             };
-            setSelectedStudent(updatedStudent);
+          }) || []
+            };
+        setSelectedStudent(freshStudentData);
             
-            // Update in localStudents
-            const updatedStudents = [...localStudents];
-            const studentIndex = updatedStudents.findIndex(s => s._id === selectedStudent._id);
-            if (studentIndex !== -1) {
-              updatedStudents[studentIndex] = {
-                ...updatedStudents[studentIndex],
-                courses: data.data.courses
-              };
-              setLocalStudents(updatedStudents);
-            }
+        // Update in localStudents as well, to keep the main list in sync
+        setLocalStudents(prevStudents => {
+          const updatedStudents = prevStudents.map(s => 
+            s._id === selectedStudent._id ? freshStudentData : s
+          );
+          return updatedStudents;
+        });
           } else {
-            // Fallback to manual update if API call fails
+        console.error("Error fetching updated student data after add, or data is null/undefined:", data);
+        // Fallback to manual update if API call fails or returns empty data
             updateLocalStudentCourses(selectedCourseId, true);
           }
-        })
-        .catch(err => {
-          console.error("Error fetching updated student data:", err);
-          // Fallback to manual update if API call fails
-          updateLocalStudentCourses(selectedCourseId, true);
-        });
       
-      // Refresh data from server
-      if (refetchStudents) {
+      // Refresh data from server for the overall students list
+      if (refetchStudents && selectedLevel && selectedDepartment) {
         await refetchStudents();
       }
       
@@ -640,27 +631,23 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
   };
   
   // Handle remove course from student
-  const handleRemoveCourse = async () => {
-    if (!deleteCourseId || !selectedStudent?._id) return;
-    
+  const handleRemoveCourse = async (courseId) => {
+    if (!courseId || !selectedStudent?._id) return;
     try {
       // Show loading status
       setStatus("Processing: Removing course from student...");
-      
-      // Get course name before removal for better message
-      const courseName = getCourseNameById(deleteCourseId);
-      
+      const courseName = getCourseNameById(courseId);
       if (removeCourseFromStudent) {
         // Use RTK Query mutation
         await removeCourseFromStudent({ 
           studentId: selectedStudent._id, 
-          courseId: deleteCourseId 
+          courseId: courseId 
         }).unwrap();
       } else {
         // Fallback to direct fetch
         const token = localStorage.getItem("token")?.replace(/"/g, "");
         const res = await fetch(
-          `https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/removeCourse/${deleteCourseId}`,
+          `https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/removeCourse/${courseId}`,
           {
             method: "DELETE",
             headers: {
@@ -672,60 +659,55 @@ export const useStudentManagement = (initialLevel = "", initialDepartment = "") 
             })
           }
         );
-        
         if (!res.ok) {
           throw new Error("Failed to remove course");
         }
       }
-      
-      setDeleteCourseId(null);
       setStatus(`Success! Course "${courseName}" removed successfully.`);
-      
-      // Fetch updated student data
-      fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/${selectedStudent._id}`, {
+      // Fetch updated student data to ensure the UI is fully consistent with backend
+      const response = await fetch(`https://attendance-eslamrazeen-eslam-razeens-projects.vercel.app/api/attendanceQRCode/studentInfo/${selectedStudent._id}`, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")?.replace(/"/g, "")}`
         }
-      })
-        .then(res => res.json())
-        .then(data => {
+      });
+      const data = await response.json();
+    
           if (data && data.data) {
-            // Update with the fresh data from the server
-            const updatedStudent = {
+        // Create a brand new object to ensure React detects the change and re-renders
+        const freshStudentData = {
               ...data.data,
-              courses: data.data.courses?.map(course => ({
+          courses: data.data.courses?.map(course => {
+            // Get additional course info
+            const courseInfo = courses.find(c => c._id === course._id);
+            return {
                 ...course,
-                name: course.courseName || getCourseNameById(course._id)
-              }))
+              ...(courseInfo || {}),
+              name: course.courseName || courseInfo?.courseName || getCourseNameById(course._id),
+              // Ensure code and department are included
+              code: course.code || courseInfo?.courseCode,
+              department: course.department || courseInfo?.department
             };
-            setSelectedStudent(updatedStudent);
-            
-            // Update in localStudents
-            const updatedStudents = [...localStudents];
-            const studentIndex = updatedStudents.findIndex(s => s._id === selectedStudent._id);
-            if (studentIndex !== -1) {
-              updatedStudents[studentIndex] = {
-                ...updatedStudents[studentIndex],
-                courses: data.data.courses
-              };
-              setLocalStudents(updatedStudents);
-            }
-          } else {
-            // Fallback to manual update if API call fails
-            updateLocalStudentCourses(deleteCourseId, false);
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching updated student data:", err);
-          // Fallback to manual update if API call fails
-          updateLocalStudentCourses(deleteCourseId, false);
+          }) || []
+            };
+        setSelectedStudent(freshStudentData);
+        
+        // Update in localStudents as well, to keep the main list in sync
+        setLocalStudents(prevStudents => {
+          const updatedStudents = prevStudents.map(s => 
+            s._id === selectedStudent._id ? freshStudentData : s
+          );
+          return updatedStudents;
         });
+          } else {
+        console.error("Error fetching updated student data after remove, or data is null/undefined:", data);
+        // Fallback to manual update if API call fails or returns empty data
+            updateLocalStudentCourses(courseId, false);
+          }
       
-      // Refresh data from server
-      if (refetchStudents) {
+      // Refresh data from server for the overall students list
+      if (refetchStudents && selectedLevel && selectedDepartment) {
         refetchStudents();
       }
-      
     } catch (err) {
       console.error("Error removing course:", err);
       setStatus(`Failed to remove course: ${err.message || "Unknown error"}`);

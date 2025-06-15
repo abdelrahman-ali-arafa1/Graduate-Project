@@ -42,7 +42,7 @@ const ProfessionalInfo = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
             {departments.map((dept, index) => (
               <motion.button
-                key={dept}
+                key={dept ? `dept-filter-${dept}` : `dept-filter-${index}`}
                 onClick={() => handleDepartmentSelect(dept)}
                 className={`py-4 px-3 rounded-lg ${
                   newUser.lecturerDepartment === dept
@@ -128,7 +128,7 @@ const ProfessionalInfo = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
             {roles.map((role, index) => (
               <motion.button
-                key={role}
+                key={role ? `role-filter-${role}` : `role-filter-${index}`}
                 onClick={() => handleRoleSelect(role)}
                 className={`py-5 px-4 rounded-lg relative ${
                   newUser.lecturerRole === role

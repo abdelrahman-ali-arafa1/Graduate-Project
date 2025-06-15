@@ -6,6 +6,10 @@ import {
   useGetQrCodeMutation,
   useEndSessionMutation
 } from '@/app/store/features/sessionApiSlice';
+import {
+  useGetManualAttendanceQuery,
+  useUpdateAttendanceStatusMutation
+} from '@/app/store/features/attendanceApiSlice';
 import { setSessionId } from '@/app/store/slices/sessionSlice';
 import { hydrate as hydrateSelectedCourse } from '@/app/store/slices/selectedCourseSlice';
 
@@ -16,6 +20,10 @@ export const useManualAttendance = () => {
   // Redux state
   const selectedCourse = useSelector((state) => state.selectedCourse?.course);
   const sessionId = useSelector((state) => state.session.sessionId);
+  
+  // API hooks for manual attendance data
+  const { data: attendanceData, isLoading: isAttendanceLoading, refetch: refetchAttendance } = useGetManualAttendanceQuery(sessionId, { skip: !sessionId });
+  const [updateAttendance, { isLoading: isUpdatingAttendance }] = useUpdateAttendanceStatusMutation();
   
   // Local state
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
@@ -79,6 +87,8 @@ export const useManualAttendance = () => {
   
   // Handle session creation
   const handleCreateSession = async () => {
+    // console.log("Attempting to create session. Selected Course:", selectedCourse);
+
     if (!selectedCourse) {
       alert("Please select a course first");
       router.push('/dashboard/doctor/subjects');
@@ -92,6 +102,7 @@ export const useManualAttendance = () => {
         timeWorking: sessionSettings.timeWorking,
       }).unwrap();
       
+      // console.log("Session creation successful! Response:", response);
       dispatch(setSessionId(response.sessionId));
       
       // Store session start time and duration in localStorage
@@ -104,6 +115,9 @@ export const useManualAttendance = () => {
       
       setSessionDialogOpen(false);
       
+      // Refetch attendance data after creating a new session
+      refetchAttendance();
+      
       // Fetch QR code once (optional)
       try {
         await getQrCode(response.sessionId);
@@ -112,7 +126,19 @@ export const useManualAttendance = () => {
       }
     } catch (err) {
       console.error('Failed to create session:', err);
-      alert("Failed to create session. Please try again.");
+      // More descriptive error message
+      alert(`Failed to create session: ${err?.data?.message || err?.message || "Unknown error"}. Please try again.`);
+    }
+  };
+  
+  // Handle updating student attendance status
+  const handleUpdateAttendance = async (studentId, status) => {
+    try {
+      await updateAttendance({ studentId, attendanceStatus: status }).unwrap();
+      refetchAttendance(); // Refetch data to update the table
+    } catch (error) {
+      console.error("Failed to update attendance status:", error);
+      alert("Failed to update attendance status. Please try again.");
     }
   };
   
@@ -141,11 +167,15 @@ export const useManualAttendance = () => {
     sessionSettings,
     remainingTime,
     isCreatingSession,
+    attendanceData,
+    isAttendanceLoading,
     handleCreateSession,
     handleSessionSettingsChange,
     openSessionDialog,
     closeSessionDialog,
-    goToQrCodePage
+    goToQrCodePage,
+    handleUpdateAttendance,
+    isUpdatingAttendance,
   };
 };
 
